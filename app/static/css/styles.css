@@ -1,0 +1,119 @@
+/* Custom styles for Family Management Solution */
+
+/* Global styling */
+:root {
+    --primary-color: #3B82F6;
+    --primary-dark: #2563EB;
+    --checklist-color: #3B82F6;
+    --carpool-color: #10B981;
+    --meal-color: #8B5CF6;
+    --success-color: #10B981;
+    --danger-color: #EF4444;
+    --warning-color: #F59E0B;
+    --info-color: #60A5FA;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Card styling */
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Button styling */
+.btn {
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Animation for loading states */
+.loading {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Checklist specific styling */
+.checklist-item {
+    transition: background-color 0.2s;
+}
+
+.checklist-item:hover {
+    background-color: #f3f4f6;
+}
+
+.checklist-item.completed {
+    text-decoration: line-through;
+    color: #9ca3af;
+}
+
+/* Calendar styling for carpool */
+.calendar-day {
+    min-height: 100px;
+    border: 1px solid #e5e7eb;
+}
+
+.calendar-day.today {
+    background-color: #f0f9ff;
+    border-color: #93c5fd;
+}
+
+.calendar-event {
+    background-color: #d1fae5;
+    border-left: 3px solid var(--carpool-color);
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+/* Meal planning grid */
+.meal-day {
+    border: 1px solid #e5e7eb;
+    padding: 0.5rem;
+}
+
+.meal-item {
+    background-color: #f5f3ff;
+    border-left: 3px solid var(--meal-color);
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+    border-radius: 0.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* Dark mode support (for future implementation) */
+@media (prefers-color-scheme: dark) {
+    /* Dark mode styles would go here */
+} 

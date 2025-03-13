@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Family Management Solution{% endblock %}</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-md">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-xl font-bold">Family Management Solution</a>
+                    <div class="hidden md:flex space-x-4">
+                        <a href="/checklists" class="hover:text-blue-200">Checklist Tool</a>
+                        <a href="/carpool" class="hover:text-blue-200">Carpool Management</a>
+                        <a href="/meals" class="hover:text-blue-200">Meal Planning</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="user-controls" class="hidden">
+                        <span id="user-email" class="mr-2"></span>
+                        <button id="logout-button" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm">Logout</button>
+                    </div>
+                    <div id="auth-controls">
+                        <a href="/login" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm">Login</a>
+                        <a href="/register" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm ml-2">Register</a>
+                    </div>
+                    <button id="mobile-menu-button" class="md:hidden focus:outline-none">
+                        <svg class="h-6 w-6 fill-current" viewBox="0 0 24 24">
+                            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="md:hidden hidden mt-3 pb-2">
+                <a href="/checklists" class="block py-2 hover:text-blue-200">Checklist Tool</a>
+                <a href="/carpool" class="block py-2 hover:text-blue-200">Carpool Management</a>
+                <a href="/meals" class="block py-2 hover:text-blue-200">Meal Planning</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="flex-grow container mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 border-t">
+        <div class="container mx-auto px-4 py-4">
+            <p class="text-center text-gray-600 text-sm">
+                &copy; 2025 Family Management Solution. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Core JavaScript -->
+    <script src="{{ url_for('static', path='/js/auth.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+    
+    <!-- Mobile menu toggle -->
+    <script>
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

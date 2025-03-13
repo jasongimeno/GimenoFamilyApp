@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+
+{% block title %}Meal Planning - Family Management Solution{% endblock %}
+
+{% block head %}
+<style>
+    .meal-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .meal-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .day-column {
+        min-height: 200px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <header class="mb-6">
+        <h1 class="text-3xl font-bold text-purple-700">Meal Planning</h1>
+        <p class="text-gray-600">Plan and organize your family meals for the week.</p>
+    </header>
+
+    <div class="flex flex-wrap mb-6">
+        <div class="w-full md:w-3/4 mb-4 md:pr-4">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-purple-600">Weekly Meal Plan</h2>
+                    <button id="get-suggestions-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">
+                        Get AI Suggestions
+                    </button>
+                </div>
+                
+                <div id="meal-plan-container" class="grid grid-cols-1 md:grid-cols-7 gap-2">
+                    {% for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}
+                    <div class="day-column border rounded p-2">
+                        <h3 class="font-medium text-gray-800 mb-2">{{ day }}</h3>
+                        <div id="meals-{{ day|lower }}" class="meal-slots">
+                            <div class="text-gray-400 text-sm italic">No meals planned</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="w-full md:w-1/4">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <h2 class="text-xl font-semibold text-purple-600 mb-4">Add Meal</h2>
+                <form id="add-meal-form" class="space-y-4">
+                    <div>
+                        <label for="meal-name" class="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
+                        <input type="text" id="meal-name" name="name" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    
+                    <div>
+                        <label for="meal-time" class="block text-sm font-medium text-gray-700 mb-1">Meal Time</label>
+                        <select id="meal-time" name="meal_time" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Dinner" selected>Dinner</option>
+                            <option value="Snack">Snack</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="meal-date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" id="meal-date" name="planned_date" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    
+                    <div>
+                        <label for="meal-details" class="block text-sm font-medium text-gray-700 mb-1">Details (Optional)</label>
+                        <textarea id="meal-details" name="details" rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                    </div>
+                    
+                    <button type="submit"
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded">
+                        Add Meal
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-purple-600">Your Meals</h2>
+            <div class="flex items-center">
+                <input type="text" id="search-meals" placeholder="Search meals..." 
+                    class="px-3 py-2 border border-gray-300 rounded-md mr-2">
+                <button id="search-btn" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">
+                    Search
+                </button>
+            </div>
+        </div>
+        
+        <div id="meals-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div id="loading-meals" class="col-span-full text-center py-8">
+                <p class="text-gray-500">Loading meals...</p>
+            </div>
+            <div id="no-meals-message" class="hidden col-span-full text-center py-8">
+                <p class="text-gray-500">No meals found. Add your first meal using the form.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Meal Modal -->
+<div id="meal-details-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-start">
+                <h3 id="modal-meal-name" class="text-xl font-bold text-purple-700"></h3>
+                <button class="text-gray-400 hover:text-gray-600" data-modal-close>
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mt-4 space-y-3">
+                <div>
+                    <span class="font-medium text-gray-700">Meal Time:</span>
+                    <span id="modal-meal-time" class="ml-2 text-gray-600"></span>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">Date:</span>
+                    <span id="modal-meal-date" class="ml-2 text-gray-600"></span>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">Details:</span>
+                    <p id="modal-meal-details" class="mt-1 text-gray-600 whitespace-pre-line"></p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-2">
+                <button id="modal-delete-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                    Delete
+                </button>
+                <button id="modal-edit-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                    Edit
+                </button>
+                <button data-modal-close class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set date input to today's date by default
+    const today = new Date();
+    const formattedDate = today.toISOString().substr(0, 10);
+    document.getElementById('meal-date').value = formattedDate;
+    
+    // Initialize the page
+    loadMeals();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Add meal form submission
+    const addMealForm = document.getElementById('add-meal-form');
+    if (addMealForm) {
+        addMealForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            addMeal();
+        });
+    }
+    
+    // Search button
+    const searchBtn = document.getElementById('search-btn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', function() {
+            const query = document.getElementById('search-meals').value;
+            searchMeals(query);
+        });
+    }
+    
+    // Get AI suggestions button
+    const suggestionsBtn = document.getElementById('get-suggestions-btn');
+    if (suggestionsBtn) {
+        suggestionsBtn.addEventListener('click', function() {
+            getMealSuggestions();
+        });
+    }
+    
+    // Modal close buttons
+    const closeButtons = document.querySelectorAll('[data-modal-close]');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('meal-details-modal').classList.add('hidden');
+        });
+    });
+}
+
+async function loadMeals() {
+    try {
+        document.getElementById('loading-meals').classList.remove('hidden');
+        document.getElementById('no-meals-message').classList.add('hidden');
+        document.getElementById('meals-container').innerHTML = '<div id="loading-meals" class="col-span-full text-center py-8"><p class="text-gray-500">Loading meals...</p></div>';
+        
+        const response = await window.auth.apiRequest('/meals/');
+        const meals = await response.json();
+        
+        document.getElementById('loading-meals').classList.add('hidden');
+        
+        if (meals.length === 0) {
+            document.getElementById('no-meals-message').classList.remove('hidden');
+            return;
+        }
+        
+        renderMeals(meals);
+    } catch (error) {
+        console.error('Error loading meals:', error);
+        app.showNotification('Failed to load meals. Please try again later.', 'error');
+    }
+}
+
+function renderMeals(meals) {
+    const mealsContainer = document.getElementById('meals-container');
+    mealsContainer.innerHTML = '';
+    
+    meals.forEach(meal => {
+        const card = document.createElement('div');
+        card.className = 'meal-card bg-white border border-gray-200 rounded-lg shadow p-4';
+        card.dataset.mealId = meal.id;
+        
+        const dateObj = new Date(meal.planned_date);
+        const formattedDate = dateObj.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        card.innerHTML = `
+            <h3 class="text-lg font-semibold text-purple-700">${meal.name}</h3>
+            <div class="flex justify-between items-center mt-2">
+                <span class="text-sm text-gray-600">${meal.meal_time}</span>
+                <span class="text-sm text-gray-600">${formattedDate}</span>
+            </div>
+            <p class="mt-2 text-gray-600 line-clamp-2">${meal.details || 'No details provided'}</p>
+            <button class="view-meal-btn mt-3 text-purple-600 hover:text-purple-800 text-sm">
+                View Details
+            </button>
+        `;
+        
+        card.querySelector('.view-meal-btn').addEventListener('click', function() {
+            showMealDetails(meal);
+        });
+        
+        mealsContainer.appendChild(card);
+    });
+}
+
+function showMealDetails(meal) {
+    const modal = document.getElementById('meal-details-modal');
+    document.getElementById('modal-meal-name').textContent = meal.name;
+    document.getElementById('modal-meal-time').textContent = meal.meal_time;
+    
+    const dateObj = new Date(meal.planned_date);
+    const formattedDate = dateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    document.getElementById('modal-meal-date').textContent = formattedDate;
+    document.getElementById('modal-meal-details').textContent = meal.details || 'No details provided';
+    
+    // Set up delete button
+    const deleteBtn = document.getElementById('modal-delete-btn');
+    deleteBtn.onclick = function() {
+        if (confirm('Are you sure you want to delete this meal?')) {
+            deleteMeal(meal.id);
+        }
+    };
+    
+    // Set up edit button
+    const editBtn = document.getElementById('modal-edit-btn');
+    editBtn.onclick = function() {
+        // For now, we'll just close the modal and let the user use the form
+        // In a more complete app, we'd populate a form for editing
+        modal.classList.add('hidden');
+        app.showNotification('Editing functionality will be implemented in a future update.', 'info');
+    };
+    
+    modal.classList.remove('hidden');
+}
+
+async function addMeal() {
+    try {
+        const form = document.getElementById('add-meal-form');
+        const formData = new FormData(form);
+        const mealData = {
+            name: formData.get('name'),
+            meal_time: formData.get('meal_time'),
+            planned_date: formData.get('planned_date'),
+            details: formData.get('details')
+        };
+        
+        const response = await window.auth.apiRequest('/meals/', {
+            method: 'POST',
+            body: JSON.stringify(mealData)
+        });
+        
+        if (response.ok) {
+            form.reset();
+            document.getElementById('meal-date').value = new Date().toISOString().substr(0, 10);
+            app.showNotification('Meal added successfully!', 'success');
+            loadMeals();
+        } else {
+            const error = await response.json();
+            app.showNotification(error.detail || 'Failed to add meal', 'error');
+        }
+    } catch (error) {
+        console.error('Error adding meal:', error);
+        app.showNotification('Failed to add meal. Please try again later.', 'error');
+    }
+}
+
+async function deleteMeal(mealId) {
+    try {
+        const response = await window.auth.apiRequest(`/meals/${mealId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            document.getElementById('meal-details-modal').classList.add('hidden');
+            app.showNotification('Meal deleted successfully!', 'success');
+            loadMeals();
+        } else {
+            const error = await response.json();
+            app.showNotification(error.detail || 'Failed to delete meal', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting meal:', error);
+        app.showNotification('Failed to delete meal. Please try again later.', 'error');
+    }
+}
+
+async function searchMeals(query) {
+    if (!query) {
+        loadMeals();
+        return;
+    }
+    
+    try {
+        const response = await window.auth.apiRequest('/meals/search', {
+            method: 'POST',
+            body: JSON.stringify({ query })
+        });
+        
+        const meals = await response.json();
+        
+        document.getElementById('loading-meals').classList.add('hidden');
+        
+        if (meals.length === 0) {
+            document.getElementById('no-meals-message').classList.remove('hidden');
+            document.getElementById('no-meals-message').querySelector('p').textContent = 
+                `No meals found matching "${query}". Try a different search term.`;
+            return;
+        }
+        
+        document.getElementById('no-meals-message').classList.add('hidden');
+        renderMeals(meals);
+    } catch (error) {
+        console.error('Error searching meals:', error);
+        app.showNotification('Failed to search meals. Please try again later.', 'error');
+    }
+}
+
+async function getMealSuggestions() {
+    try {
+        const response = await window.auth.apiRequest('/meals/suggest');
+        const data = await response.json();
+        
+        if (data.suggestions && data.suggestions.length > 0) {
+            // Map day numbers to day names
+            const dayMap = {
+                1: "Monday",
+                2: "Tuesday",
+                3: "Wednesday",
+                4: "Thursday",
+                5: "Friday",
+                6: "Saturday",
+                7: "Sunday"
+            };
+            
+            data.suggestions.forEach(suggestion => {
+                const dayName = dayMap[suggestion.day];
+                const dayElement = document.getElementById(`meals-${dayName.toLowerCase()}`);
+                if (dayElement) {
+                    dayElement.innerHTML = `
+                        <div class="meal-item p-2 bg-purple-50 border-l-4 border-purple-500 rounded mb-2">
+                            <p class="font-medium">${suggestion.meal}</p>
+                            <p class="text-xs text-gray-500">AI Suggestion</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            app.showNotification('Meal suggestions generated!', 'success');
+        } else {
+            app.showNotification('Not enough meal history to generate suggestions. Add more meals first.', 'warning');
+        }
+    } catch (error) {
+        console.error('Error getting meal suggestions:', error);
+        app.showNotification('Failed to get meal suggestions. Please try again later.', 'error');
+    }
+}
+</script>
+{% endblock %} 
