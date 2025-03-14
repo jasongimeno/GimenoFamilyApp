@@ -2,34 +2,101 @@
 
 /* Global styling */
 :root {
-    --primary-color: #3B82F6;
-    --primary-dark: #2563EB;
-    --checklist-color: #3B82F6;
-    --carpool-color: #10B981;
-    --meal-color: #8B5CF6;
-    --success-color: #10B981;
-    --danger-color: #EF4444;
-    --warning-color: #F59E0B;
-    --info-color: #60A5FA;
+    /* Base colors */
+    --color-background: #f9fafb;
+    --color-surface: #ffffff;
+    --color-text: #1f2937;
+    --color-text-secondary: #4b5563;
+    --color-border: #e5e7eb;
+    
+    /* Brand colors */
+    --color-primary: #4f46e5;
+    --color-primary-hover: #4338ca;
+    --color-primary-light: #eef2ff;
+    
+    /* Feature colors */
+    --color-checklist: #3b82f6;
+    --color-checklist-light: #eff6ff;
+    --color-carpool: #10b981;
+    --color-carpool-light: #ecfdf5;
+    --color-meal: #8b5cf6;
+    --color-meal-light: #f5f3ff;
+    
+    /* Status colors */
+    --color-success: #10b981;
+    --color-danger: #ef4444;
+    --color-warning: #f59e0b;
+    --color-info: #60a5fa;
+    
+    /* UI elements */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* Transitions */
+    --transition-fast: 150ms;
+    --transition-normal: 250ms;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, var(--color-primary), #6366f1);
+    --gradient-checklist: linear-gradient(135deg, var(--color-checklist), #60a5fa);
+    --gradient-carpool: linear-gradient(135deg, var(--color-carpool), #34d399);
+    --gradient-meal: linear-gradient(135deg, var(--color-meal), #a78bfa);
 }
 
+/* Dark mode variables */
+.dark {
+    --color-background: #111827;
+    --color-surface: #1f2937;
+    --color-text: #f9fafb;
+    --color-text-secondary: #d1d5db;
+    --color-border: #374151;
+    
+    /* Brand colors - slightly adjusted for dark mode */
+    --color-primary: #6366f1;
+    --color-primary-hover: #818cf8;
+    --color-primary-light: #312e81;
+    
+    /* Feature colors - adjusted for dark mode */
+    --color-checklist-light: #1e3a8a;
+    --color-carpool-light: #065f46;
+    --color-meal-light: #5b21b6;
+    
+    /* Shadow adjustments */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Apply theme colors to elements */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 /* Card styling */
 .card {
-    transition: transform 0.2s, box-shadow 0.2s;
+    background-color: var(--color-surface);
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
 }
 
 .card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-hover);
 }
 
 /* Button styling */
 .btn {
-    transition: all 0.2s;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
 }
 
 .btn:hover {
@@ -38,6 +105,12 @@ body {
 
 .btn:active {
     transform: translateY(0);
+}
+
+/* Enhanced primary button with gradient */
+.btn-primary {
+    background-image: var(--gradient-primary);
+    border: none;
 }
 
 /* Animation for loading states */
@@ -59,32 +132,35 @@ body {
 
 /* Checklist specific styling */
 .checklist-item {
-    transition: background-color 0.2s;
+    transition: background-color var(--transition-normal);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
 }
 
 .checklist-item:hover {
-    background-color: #f3f4f6;
+    background-color: var(--color-checklist-light);
 }
 
 .checklist-item.completed {
     text-decoration: line-through;
-    color: #9ca3af;
+    color: var(--color-text-secondary);
 }
 
 /* Calendar styling for carpool */
 .calendar-day {
     min-height: 100px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
 }
 
 .calendar-day.today {
-    background-color: #f0f9ff;
-    border-color: #93c5fd;
+    background-color: var(--color-carpool-light);
+    border-color: var(--color-carpool);
 }
 
 .calendar-event {
-    background-color: #d1fae5;
-    border-left: 3px solid var(--carpool-color);
+    background-color: var(--color-carpool-light);
+    border-left: 3px solid var(--color-carpool);
     padding: 0.25rem 0.5rem;
     margin-bottom: 0.25rem;
     border-radius: 0.25rem;
@@ -93,16 +169,54 @@ body {
 
 /* Meal planning grid */
 .meal-day {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     padding: 0.5rem;
+    background-color: var(--color-surface);
 }
 
 .meal-item {
-    background-color: #f5f3ff;
-    border-left: 3px solid var(--meal-color);
+    background-color: var(--color-meal-light);
+    border-left: 3px solid var(--color-meal);
     padding: 0.5rem;
     margin-bottom: 0.25rem;
     border-radius: 0.25rem;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--transition-normal);
+}
+
+.theme-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark .theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Common UI element styling */
+.gradient-heading {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.feature-card {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
 }
 
 /* Responsive adjustments */

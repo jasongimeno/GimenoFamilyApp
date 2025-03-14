@@ -198,7 +198,7 @@ function setupEventListeners() {
     if (addMealForm) {
         addMealForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            addMeal();
+            addOrUpdateMeal();
         });
     }
     
@@ -264,21 +264,33 @@ async function loadMeals() {
         
         document.getElementById('loading-meals').classList.add('hidden');
         
+        // Always store the meals in the global variable, even if empty
+        window.currentMeals = meals;
+        
         if (meals.length === 0) {
             document.getElementById('no-meals-message').classList.remove('hidden');
+            // Make sure the weekly view is updated even for no meals
+            displayWeek(currentWeekOffset);
             return;
         }
         
         renderMeals(meals);
         
         // Update weekly plan view with the meals
+        displayWeek(currentWeekOffset);
         updateWeeklyPlanWithMeals(meals);
+        
+        return meals;  // Return the meals for possible use by callers
     } catch (error) {
         console.error('Error loading meals:', error);
         document.getElementById('loading-meals').classList.add('hidden');
         document.getElementById('no-meals-message').classList.remove('hidden');
         document.getElementById('no-meals-message').querySelector('p').textContent = 
             'Could not load meals. Please refresh the page to try again.';
+        
+        // Set window.currentMeals to empty array if we fail to load
+        window.currentMeals = [];
+        throw error;  // Re-throw so caller can handle if needed
     }
 }
 
@@ -342,8 +354,8 @@ function displayWeek(offset) {
         column.dataset.date = date.toISOString().split('T')[0];
     });
     
-    // Update weekly plan with loaded meals
-    updateWeeklyPlanWithMeals();
+    // No need to call updateWeeklyPlanWithMeals without any meals
+    // The calling functions (loadMeals) will handle this
 }
 
 // Check if a date is today
@@ -356,10 +368,13 @@ function isToday(date) {
 
 // Update weekly plan with meals
 function updateWeeklyPlanWithMeals(meals) {
-    // If meals not provided, try to get them from a data attribute
-    if (!meals) {
-        // This would be implemented if we wanted to store the meals in memory
-        // For now, we'll just leave early if no meals provided
+    // If meals not provided, try to get them from the global variable
+    if (!meals && window.currentMeals) {
+        meals = window.currentMeals;
+    }
+    
+    // If still no meals, exit early
+    if (!meals || !meals.length) {
         return;
     }
     
@@ -461,16 +476,45 @@ function showMealDetails(meal) {
     // Set up edit button
     const editBtn = document.getElementById('modal-edit-btn');
     editBtn.onclick = function() {
-        // For now, we'll just close the modal and let the user use the form
-        // In a more complete app, we'd populate a form for editing
-        modal.classList.add('hidden');
-        app.showNotification('Editing functionality will be implemented in a future update.', 'info');
+        openEditMealModal(meal);
     };
     
     modal.classList.remove('hidden');
 }
 
-async function addMeal() {
+// Create a new function to handle editing a meal
+function openEditMealModal(meal) {
+    // Hide details modal
+    document.getElementById('meal-details-modal').classList.add('hidden');
+    
+    // Fill the add meal form with the meal details for editing
+    document.getElementById('meal-name').value = meal.name;
+    document.getElementById('meal-time').value = meal.meal_time;
+    
+    // Format date for the input field (YYYY-MM-DD)
+    const dateObj = new Date(meal.planned_date);
+    const formattedDate = dateObj.toISOString().substr(0, 10);
+    document.getElementById('meal-date').value = formattedDate;
+    
+    document.getElementById('meal-details').value = meal.details || '';
+    
+    // Change the form to edit mode
+    const form = document.getElementById('add-meal-form');
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.textContent = 'Update Meal';
+    
+    // Store the meal ID in the form for reference
+    form.dataset.editMealId = meal.id;
+    form.dataset.editMode = 'true';
+    
+    // Scroll to the form
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // Focus on the first field
+    document.getElementById('meal-name').focus();
+}
+
+async function addOrUpdateMeal() {
     try {
         const form = document.getElementById('add-meal-form');
         const formData = new FormData(form);
@@ -481,38 +525,151 @@ async function addMeal() {
             details: formData.get('details')
         };
         
-        const response = await window.auth.apiRequest('/meals/', {
-            method: 'POST',
-            body: JSON.stringify(mealData)
-        });
+        // Check if we're in edit mode
+        const editMode = form.dataset.editMode === 'true';
+        const mealId = form.dataset.editMealId;
+        
+        let response;
+        
+        if (editMode) {
+            // Update existing meal
+            response = await window.auth.apiRequest(`/meals/${mealId}`, {
+                method: 'PUT',
+                body: JSON.stringify(mealData)
+            });
+        } else {
+            // Create new meal
+            response = await window.auth.apiRequest('/meals/', {
+                method: 'POST',
+                body: JSON.stringify(mealData)
+            });
+        }
         
         if (response.ok) {
+            // Get the meal data from the response
+            const newMeal = await response.json();
+            
+            // Reset form and edit mode
             form.reset();
+            form.dataset.editMode = 'false';
+            form.dataset.editMealId = '';
+            
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.textContent = 'Add Meal';
+            
+            // Set date back to today's date for new meals
             document.getElementById('meal-date').value = new Date().toISOString().substr(0, 10);
-            app.showNotification('Meal added successfully!', 'success');
             
-            // Reload meals
-            await loadMeals();
+            // Show success message
+            app.showNotification(
+                editMode ? 'Meal updated successfully!' : 'Meal added successfully!', 
+                'success'
+            );
             
-            // No need to call loadMeals twice
-            // loadMeals();
+            // Update our local meals data
+            if (!window.currentMeals) {
+                window.currentMeals = [];
+            }
+            
+            if (editMode) {
+                // Find and update the meal in the current meals array
+                const index = window.currentMeals.findIndex(m => m.id.toString() === mealId);
+                if (index !== -1) {
+                    window.currentMeals[index] = newMeal;
+                } else {
+                    // If we couldn't find it (shouldn't happen), add it
+                    window.currentMeals.push(newMeal);
+                }
+            } else {
+                // For new meals, add to the array
+                window.currentMeals.push(newMeal);
+            }
+            
+            // Update the UI with our local data
+            renderMeals(window.currentMeals);
+            displayWeek(currentWeekOffset);
+            updateWeeklyPlanWithMeals(window.currentMeals);
         } else {
             const error = await response.json();
-            app.showNotification(error.detail || 'Failed to add meal', 'error');
+            app.showNotification(error.detail || 'Failed to save meal', 'error');
+            
+            // Even if there was an error, let's refresh to make sure UI is in sync
+            try {
+                await loadMeals();
+                displayWeek(currentWeekOffset);
+                updateWeeklyPlanWithMeals(window.currentMeals);
+            } catch (e) {
+                console.error('Error refreshing meals after save error:', e);
+            }
         }
     } catch (error) {
-        console.error('Error adding meal:', error);
+        console.error('Error saving meal:', error);
         
-        // Check if we got a successful response from the server even if Elasticsearch failed
-        app.showNotification('Meal was added but some features may be limited. Please refresh the page.', 'warning');
-        
-        // Still try to load meals
-        setTimeout(loadMeals, 1000);
+        // Check if the error is a network error or unexpected issue
+        // In either case, try to load meals to see if the operation actually succeeded
+        try {
+            await loadMeals();
+            
+            // If we get here, the meals loaded successfully, so the meal might have been saved
+            // Check if the meal exists in the loaded data (for both add and edit)
+            const form = document.getElementById('add-meal-form');
+            const mealName = form.querySelector('[name="name"]').value;
+            const plannedDate = form.querySelector('[name="planned_date"]').value;
+            const mealTime = form.querySelector('[name="meal_time"]').value;
+            
+            // Look for a matching meal in the loaded data
+            const matchingMeal = window.currentMeals.find(m => 
+                m.name === mealName && 
+                m.planned_date.includes(plannedDate) && 
+                m.meal_time === mealTime
+            );
+            
+            if (matchingMeal) {
+                // If we found a matching meal, the operation probably succeeded
+                app.showNotification('Meal saved successfully!', 'success');
+                
+                // Reset the form since the operation likely succeeded
+                form.reset();
+                form.dataset.editMode = 'false';
+                form.dataset.editMealId = '';
+                
+                const submitButton = form.querySelector('button[type="submit"]');
+                submitButton.textContent = 'Add Meal';
+                
+                // Set date back to today
+                document.getElementById('meal-date').value = new Date().toISOString().substr(0, 10);
+            } else {
+                // If we didn't find a matching meal, the operation probably failed
+                app.showNotification('Failed to save meal. Please try again.', 'error');
+            }
+            
+            // Update the UI with whatever data we have
+            displayWeek(currentWeekOffset);
+            updateWeeklyPlanWithMeals(window.currentMeals);
+        } catch (e) {
+            // Only show error if we truly can't load meals
+            app.showNotification('Failed to save meal and refresh meals. Please try again.', 'error');
+        }
     }
 }
 
 async function deleteMeal(mealId) {
     try {
+        // Before making the delete request, store the meal for potential rollback
+        let deletedMeal = null;
+        if (window.currentMeals) {
+            deletedMeal = window.currentMeals.find(meal => meal.id.toString() === mealId.toString());
+        }
+        
+        // Optimistically update the UI first (before the server confirms)
+        if (window.currentMeals) {
+            window.currentMeals = window.currentMeals.filter(meal => meal.id.toString() !== mealId.toString());
+            renderMeals(window.currentMeals);
+            displayWeek(currentWeekOffset);
+            updateWeeklyPlanWithMeals(window.currentMeals);
+        }
+        
+        // Now make the actual delete request
         const response = await window.auth.apiRequest(`/meals/${mealId}`, {
             method: 'DELETE'
         });
@@ -520,14 +677,71 @@ async function deleteMeal(mealId) {
         if (response.ok) {
             document.getElementById('meal-details-modal').classList.add('hidden');
             app.showNotification('Meal deleted successfully!', 'success');
-            loadMeals();
+            
+            // Reset form if we were editing this meal
+            const form = document.getElementById('add-meal-form');
+            if (form.dataset.editMealId === mealId.toString() && form.dataset.editMode === 'true') {
+                form.reset();
+                form.dataset.editMode = 'false';
+                form.dataset.editMealId = '';
+                
+                const submitButton = form.querySelector('button[type="submit"]');
+                submitButton.textContent = 'Add Meal';
+                
+                // Set date back to today
+                document.getElementById('meal-date').value = new Date().toISOString().substr(0, 10);
+            }
+            
+            // The UI is already updated optimistically, no need to update again
         } else {
-            const error = await response.json();
-            app.showNotification(error.detail || 'Failed to delete meal', 'error');
+            if (response.status === 404) {
+                // If meal was not found, it's already deleted - all good
+                app.showNotification('Meal deleted successfully', 'success');
+                document.getElementById('meal-details-modal').classList.add('hidden');
+            } else {
+                // For other errors, restore the deleted meal if we have it
+                const error = await response.json();
+                app.showNotification(error.detail || 'Failed to delete meal', 'error');
+                
+                // Rollback the optimistic update if we have the deleted meal
+                if (deletedMeal && window.currentMeals) {
+                    window.currentMeals.push(deletedMeal);
+                    renderMeals(window.currentMeals);
+                    displayWeek(currentWeekOffset);
+                    updateWeeklyPlanWithMeals(window.currentMeals);
+                } else {
+                    // If we can't rollback, refresh from server
+                    await loadMeals();
+                    displayWeek(currentWeekOffset);
+                    updateWeeklyPlanWithMeals(window.currentMeals);
+                }
+            }
         }
     } catch (error) {
         console.error('Error deleting meal:', error);
-        app.showNotification('Failed to delete meal. Please try again later.', 'error');
+        
+        // Try to refresh meals to see if deletion succeeded despite error
+        try {
+            await loadMeals();
+            displayWeek(currentWeekOffset);
+            updateWeeklyPlanWithMeals(window.currentMeals);
+            
+            // Check if the meal still exists
+            const mealExists = window.currentMeals && 
+                window.currentMeals.some(meal => meal.id.toString() === mealId.toString());
+                
+            if (!mealExists) {
+                // If the meal is gone, it was successfully deleted
+                app.showNotification('Meal deleted successfully', 'success');
+                document.getElementById('meal-details-modal').classList.add('hidden');
+            } else {
+                // If the meal still exists, the delete failed
+                app.showNotification('Failed to delete meal. Please try again.', 'error');
+            }
+        } catch (e) {
+            // Only show error if we truly can't load meals
+            app.showNotification('Failed to verify meal deletion. Please check if it was deleted.', 'warning');
+        }
     }
 }
 

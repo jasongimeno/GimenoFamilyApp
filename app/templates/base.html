@@ -1,36 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Family Management Solution{% endblock %}</title>
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
     <!-- Custom CSS -->
     <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
+    
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- Navigation -->
-    <nav class="bg-blue-600 text-white shadow-md">
+    <nav class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
         <div class="container mx-auto px-4 py-3">
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-4">
-                    <a href="/" class="text-xl font-bold">Family Management Solution</a>
+                    <a href="/" class="text-xl font-bold tracking-tight">Family Management Solution</a>
                     <div class="hidden md:flex space-x-4">
-                        <a href="/checklists" class="hover:text-blue-200">Checklist Tool</a>
-                        <a href="/carpool" class="hover:text-blue-200">Carpool Management</a>
-                        <a href="/meals" class="hover:text-blue-200">Meal Planning</a>
+                        <a href="/checklists" class="hover:text-indigo-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Checklist Tool</a>
+                        <a href="/carpool" class="hover:text-indigo-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Carpool Management</a>
+                        <a href="/meals" class="hover:text-indigo-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Meal Planning</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
+                    <!-- Theme Toggle Button -->
+                    <button id="theme-toggle" class="theme-toggle bg-white bg-opacity-10 rounded-full p-2" aria-label="Toggle dark mode">
+                        <!-- Sun icon (shown in dark mode) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <!-- Moon icon (shown in light mode) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </button>
+                    
                     <div id="user-controls" class="hidden">
                         <span id="user-email" class="mr-2"></span>
-                        <button id="logout-button" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm">Logout</button>
+                        <button id="logout-button" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition-colors shadow-sm hover:shadow-md">Logout</button>
                     </div>
                     <div id="auth-controls">
-                        <a href="/login" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm">Login</a>
-                        <a href="/register" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm ml-2">Register</a>
+                        <a href="/login" class="bg-indigo-500 hover:bg-indigo-600 px-3 py-1 rounded text-sm transition-colors shadow-sm hover:shadow-md">Login</a>
+                        <a href="/register" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm ml-2 transition-colors shadow-sm hover:shadow-md">Register</a>
                     </div>
                     <button id="mobile-menu-button" class="md:hidden focus:outline-none">
                         <svg class="h-6 w-6 fill-current" viewBox="0 0 24 24">
@@ -40,9 +60,9 @@
                 </div>
             </div>
             <div id="mobile-menu" class="md:hidden hidden mt-3 pb-2">
-                <a href="/checklists" class="block py-2 hover:text-blue-200">Checklist Tool</a>
-                <a href="/carpool" class="block py-2 hover:text-blue-200">Carpool Management</a>
-                <a href="/meals" class="block py-2 hover:text-blue-200">Meal Planning</a>
+                <a href="/checklists" class="block py-2 hover:text-indigo-200 hover:bg-white hover:bg-opacity-10 px-2 rounded">Checklist Tool</a>
+                <a href="/carpool" class="block py-2 hover:text-indigo-200 hover:bg-white hover:bg-opacity-10 px-2 rounded">Carpool Management</a>
+                <a href="/meals" class="block py-2 hover:text-indigo-200 hover:bg-white hover:bg-opacity-10 px-2 rounded">Meal Planning</a>
             </div>
         </div>
     </nav>
@@ -53,13 +73,16 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-100 border-t">
+    <footer class="border-t transition-colors">
         <div class="container mx-auto px-4 py-4">
-            <p class="text-center text-gray-600 text-sm">
+            <p class="text-center text-gray-600 dark:text-gray-400 text-sm">
                 &copy; 2025 Family Management Solution. All rights reserved.
             </p>
         </div>
     </footer>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed bottom-4 right-4 z-50"></div>
 
     <!-- Core JavaScript -->
     <script src="{{ url_for('static', path='/js/auth.js') }}"></script>
@@ -70,6 +93,11 @@
         document.getElementById('mobile-menu-button').addEventListener('click', function() {
             const mobileMenu = document.getElementById('mobile-menu');
             mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Check for saved theme preference or user's OS preference
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle functionality will be initialized in app.js
         });
     </script>
     

@@ -14,6 +14,9 @@ function initApp() {
     // Set up UI components
     setupUI();
     
+    // Initialize theme
+    initTheme();
+    
     // Handle page-specific initialization
     const currentPath = window.location.pathname;
     
@@ -38,6 +41,9 @@ function setupUI() {
     
     // Set up confirmation dialogs
     setupConfirmations();
+    
+    // Set up theme toggle
+    setupThemeToggle();
 }
 
 /**
@@ -211,6 +217,55 @@ function initCarpoolPage() {
 function initMealPage() {
     // This will be implemented in meal.js
     console.log('Meal Planning page initialized');
+}
+
+/**
+ * Initialize theme based on saved preference or system preference
+ */
+function initTheme() {
+    // Check if user has a saved preference
+    const savedTheme = localStorage.getItem('theme');
+    
+    if (savedTheme === 'dark') {
+        // User has explicitly chosen dark mode
+        document.documentElement.classList.add('dark');
+    } else if (savedTheme === 'light') {
+        // User has explicitly chosen light mode
+        document.documentElement.classList.remove('dark');
+    } else {
+        // No saved preference, check system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            // System prefers dark mode
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            // System prefers light mode or doesn't have a preference
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }
+}
+
+/**
+ * Set up the theme toggle button functionality
+ */
+function setupThemeToggle() {
+    const themeToggle = document.getElementById('theme-toggle');
+    
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            // Toggle dark class on html element
+            if (document.documentElement.classList.contains('dark')) {
+                // Currently dark, switch to light
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                // Currently light, switch to dark
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+    }
 }
 
 // Export utilities for other scripts
