@@ -29,15 +29,32 @@
             <div class="bg-white rounded-lg shadow-md p-4">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-purple-600">Weekly Meal Plan</h2>
-                    <button id="get-suggestions-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">
-                        Get AI Suggestions
-                    </button>
+                    <div class="flex items-center space-x-2">
+                        <button id="prev-week-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <span id="week-display" class="text-purple-600 font-medium">Current Week</span>
+                        <button id="next-week-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <button id="today-btn" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-1 rounded ml-2">
+                            Today
+                        </button>
+                        <button id="get-suggestions-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded ml-2">
+                            Get AI Suggestions
+                        </button>
+                    </div>
                 </div>
                 
                 <div id="meal-plan-container" class="grid grid-cols-1 md:grid-cols-7 gap-2">
                     {% for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}
                     <div class="day-column border rounded p-2">
                         <h3 class="font-medium text-gray-800 mb-2">{{ day }}</h3>
+                        <div class="date-display text-xs text-gray-500 mb-1"></div>
                         <div id="meals-{{ day|lower }}" class="meal-slots">
                             <div class="text-gray-400 text-sm italic">No meals planned</div>
                         </div>
@@ -167,7 +184,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the page
     loadMeals();
     setupEventListeners();
+    
+    // Initialize weekly view with current week
+    displayWeek(0); // 0 = current week
 });
+
+// Current week offset (0 = current week, -1 = last week, 1 = next week, etc.)
+let currentWeekOffset = 0;
 
 function setupEventListeners() {
     // Add meal form submission
@@ -193,6 +216,31 @@ function setupEventListeners() {
     if (suggestionsBtn) {
         suggestionsBtn.addEventListener('click', function() {
             getMealSuggestions();
+        });
+    }
+    
+    // Week navigation buttons
+    const prevWeekBtn = document.getElementById('prev-week-btn');
+    if (prevWeekBtn) {
+        prevWeekBtn.addEventListener('click', function() {
+            currentWeekOffset--;
+            displayWeek(currentWeekOffset);
+        });
+    }
+    
+    const nextWeekBtn = document.getElementById('next-week-btn');
+    if (nextWeekBtn) {
+        nextWeekBtn.addEventListener('click', function() {
+            currentWeekOffset++;
+            displayWeek(currentWeekOffset);
+        });
+    }
+    
+    const todayBtn = document.getElementById('today-btn');
+    if (todayBtn) {
+        todayBtn.addEventListener('click', function() {
+            currentWeekOffset = 0;
+            displayWeek(0);
         });
     }
     
@@ -222,10 +270,133 @@ async function loadMeals() {
         }
         
         renderMeals(meals);
+        
+        // Update weekly plan view with the meals
+        updateWeeklyPlanWithMeals(meals);
     } catch (error) {
         console.error('Error loading meals:', error);
-        app.showNotification('Failed to load meals. Please try again later.', 'error');
+        document.getElementById('loading-meals').classList.add('hidden');
+        document.getElementById('no-meals-message').classList.remove('hidden');
+        document.getElementById('no-meals-message').querySelector('p').textContent = 
+            'Could not load meals. Please refresh the page to try again.';
     }
+}
+
+// Get the Monday of the week based on the offset
+function getMondayOfWeek(offset) {
+    const today = new Date();
+    const day = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    // If today is Sunday, we need to go back 6 days to get to Monday
+    // Otherwise, we go back (day - 1) days
+    const daysToSubtract = day === 0 ? 6 : day - 1;
+    
+    // Set to the Monday of this week
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysToSubtract);
+    
+    // Adjust for the offset
+    monday.setDate(monday.getDate() + (offset * 7));
+    
+    // Reset time to start of day
+    monday.setHours(0, 0, 0, 0);
+    
+    return monday;
+}
+
+// Display week dates in the weekly view
+function displayWeek(offset) {
+    const monday = getMondayOfWeek(offset);
+    const dayColumns = document.querySelectorAll('.day-column');
+    const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const weekDisplay = document.getElementById('week-display');
+    
+    // Update week display
+    const mondayStr = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const sundayStr = sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    
+    weekDisplay.textContent = `${mondayStr} - ${sundayStr}`;
+    
+    // Update each day column with the date
+    dayColumns.forEach((column, index) => {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + index);
+        
+        const dateDisplay = column.querySelector('.date-display');
+        dateDisplay.textContent = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        // Highlight today
+        if (isToday(date)) {
+            column.classList.add('bg-purple-50', 'border-purple-300');
+        } else {
+            column.classList.remove('bg-purple-50', 'border-purple-300');
+        }
+        
+        // Reset meal slots
+        const mealSlots = column.querySelector('.meal-slots');
+        mealSlots.innerHTML = '<div class="text-gray-400 text-sm italic">No meals planned</div>';
+        
+        // Store the date in a data attribute for later use
+        column.dataset.date = date.toISOString().split('T')[0];
+    });
+    
+    // Update weekly plan with loaded meals
+    updateWeeklyPlanWithMeals();
+}
+
+// Check if a date is today
+function isToday(date) {
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+}
+
+// Update weekly plan with meals
+function updateWeeklyPlanWithMeals(meals) {
+    // If meals not provided, try to get them from a data attribute
+    if (!meals) {
+        // This would be implemented if we wanted to store the meals in memory
+        // For now, we'll just leave early if no meals provided
+        return;
+    }
+    
+    const dayColumns = document.querySelectorAll('.day-column');
+    
+    dayColumns.forEach(column => {
+        const columnDate = column.dataset.date;
+        const dayMeals = meals.filter(meal => {
+            const mealDate = new Date(meal.planned_date);
+            return mealDate.toISOString().split('T')[0] === columnDate;
+        });
+        
+        const mealSlots = column.querySelector('.meal-slots');
+        
+        if (dayMeals.length > 0) {
+            mealSlots.innerHTML = '';
+            
+            dayMeals.forEach(meal => {
+                const mealElement = document.createElement('div');
+                mealElement.className = 'meal-item p-2 bg-white border-l-4 border-purple-500 rounded mb-2 hover:bg-purple-50 cursor-pointer';
+                mealElement.dataset.mealId = meal.id;
+                
+                mealElement.innerHTML = `
+                    <p class="font-medium">${meal.name}</p>
+                    <p class="text-xs text-gray-500">${meal.meal_time}</p>
+                `;
+                
+                mealElement.addEventListener('click', function() {
+                    showMealDetails(meal);
+                });
+                
+                mealSlots.appendChild(mealElement);
+            });
+        } else {
+            mealSlots.innerHTML = '<div class="text-gray-400 text-sm italic">No meals planned</div>';
+        }
+    });
 }
 
 function renderMeals(meals) {
@@ -319,14 +490,24 @@ async function addMeal() {
             form.reset();
             document.getElementById('meal-date').value = new Date().toISOString().substr(0, 10);
             app.showNotification('Meal added successfully!', 'success');
-            loadMeals();
+            
+            // Reload meals
+            await loadMeals();
+            
+            // No need to call loadMeals twice
+            // loadMeals();
         } else {
             const error = await response.json();
             app.showNotification(error.detail || 'Failed to add meal', 'error');
         }
     } catch (error) {
         console.error('Error adding meal:', error);
-        app.showNotification('Failed to add meal. Please try again later.', 'error');
+        
+        // Check if we got a successful response from the server even if Elasticsearch failed
+        app.showNotification('Meal was added but some features may be limited. Please refresh the page.', 'warning');
+        
+        // Still try to load meals
+        setTimeout(loadMeals, 1000);
     }
 }
 

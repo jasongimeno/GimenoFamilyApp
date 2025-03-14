@@ -32,8 +32,15 @@ def create_carpool_event(
     db.commit()
     db.refresh(db_event)
     
-    # Index in Elasticsearch
-    index_carpool_event(db_event)
+    # Index in Elasticsearch - but don't block if it fails
+    try:
+        index_success = index_carpool_event(db_event)
+        if not index_success:
+            # Log the failure, but don't halt the process
+            print(f"Warning: Failed to index carpool event ID {db_event.id} in Elasticsearch, but event was created in database")
+    except Exception as e:
+        # If indexing fails, just log the error
+        print(f"Warning: Error occurred during carpool event indexing: {str(e)}")
     
     return db_event
 
@@ -102,8 +109,15 @@ def update_carpool_event(
     db.commit()
     db.refresh(event)
     
-    # Update in Elasticsearch
-    index_carpool_event(event)
+    # Update in Elasticsearch - but don't block if it fails
+    try:
+        index_success = index_carpool_event(event)
+        if not index_success:
+            # Log the failure, but don't halt the process
+            print(f"Warning: Failed to index carpool event ID {event.id} in Elasticsearch during update, but event was updated in database")
+    except Exception as e:
+        # If indexing fails, just log the error
+        print(f"Warning: Error occurred during carpool event indexing on update: {str(e)}")
     
     return event
 
@@ -130,8 +144,12 @@ def delete_carpool_event(
     db.delete(event)
     db.commit()
     
-    # Delete from Elasticsearch
-    delete_document(CARPOOL_INDEX, event_id)
+    # Delete from Elasticsearch - but don't block if it fails
+    try:
+        delete_document(CARPOOL_INDEX, event_id)
+    except Exception as e:
+        # If deletion from Elasticsearch fails, just log the error
+        print(f"Warning: Error occurred during carpool event deletion from Elasticsearch: {str(e)}")
     
     return None
 

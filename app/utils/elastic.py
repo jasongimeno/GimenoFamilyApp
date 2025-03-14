@@ -35,72 +35,84 @@ def setup_elasticsearch_indices():
         return
     
     try:
-        # Check if Elasticsearch is available
-        if es_client.ping():
+        # Check if Elasticsearch is available with timeout
+        if es_client.ping(request_timeout=5):
             elasticsearch_available = True
             logger.info("Successfully connected to Elasticsearch")
             
-            # Checklist index
-            if not es_client.indices.exists(index=CHECKLIST_INDEX):
-                es_client.indices.create(
-                    index=CHECKLIST_INDEX,
-                    body={
-                        "mappings": {
-                            "properties": {
-                                "id": {"type": "integer"},
-                                "user_id": {"type": "integer"},
-                                "title": {"type": "text"},
-                                "category": {"type": "keyword"},
-                                "items": {
-                                    "type": "nested",
-                                    "properties": {
-                                        "text": {"type": "text"},
-                                        "required": {"type": "boolean"}
-                                    }
-                                },
-                                "created_at": {"type": "date"}
+            try:
+                # Checklist index
+                if not es_client.indices.exists(index=CHECKLIST_INDEX):
+                    es_client.indices.create(
+                        index=CHECKLIST_INDEX,
+                        body={
+                            "mappings": {
+                                "properties": {
+                                    "id": {"type": "integer"},
+                                    "user_id": {"type": "integer"},
+                                    "title": {"type": "text"},
+                                    "category": {"type": "keyword"},
+                                    "items": {
+                                        "type": "nested",
+                                        "properties": {
+                                            "text": {"type": "text"},
+                                            "required": {"type": "boolean"}
+                                        }
+                                    },
+                                    "created_at": {"type": "date"}
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                    logger.info(f"Created {CHECKLIST_INDEX} index")
+            except Exception as e:
+                logger.warning(f"Error creating {CHECKLIST_INDEX} index: {str(e)}")
 
-            # Carpool index
-            if not es_client.indices.exists(index=CARPOOL_INDEX):
-                es_client.indices.create(
-                    index=CARPOOL_INDEX,
-                    body={
-                        "mappings": {
-                            "properties": {
-                                "id": {"type": "integer"},
-                                "user_id": {"type": "integer"},
-                                "description": {"type": "text"},
-                                "destination": {"type": "text"},
-                                "drop_off_time": {"type": "date"},
-                                "notes": {"type": "text"},
-                                "created_at": {"type": "date"}
+            try:
+                # Carpool index
+                if not es_client.indices.exists(index=CARPOOL_INDEX):
+                    es_client.indices.create(
+                        index=CARPOOL_INDEX,
+                        body={
+                            "mappings": {
+                                "properties": {
+                                    "id": {"type": "integer"},
+                                    "user_id": {"type": "integer"},
+                                    "description": {"type": "text"},
+                                    "destination": {"type": "text"},
+                                    "drop_off_time": {"type": "date"},
+                                    "notes": {"type": "text"},
+                                    "created_at": {"type": "date"}
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                    logger.info(f"Created {CARPOOL_INDEX} index")
+            except Exception as e:
+                logger.warning(f"Error creating {CARPOOL_INDEX} index: {str(e)}")
 
-            # Meal index
-            if not es_client.indices.exists(index=MEAL_INDEX):
-                es_client.indices.create(
-                    index=MEAL_INDEX,
-                    body={
-                        "mappings": {
-                            "properties": {
-                                "id": {"type": "integer"},
-                                "user_id": {"type": "integer"},
-                                "name": {"type": "text"},
-                                "meal_time": {"type": "keyword"},
-                                "details": {"type": "text"},
-                                "planned_date": {"type": "date"},
-                                "created_at": {"type": "date"}
+            try:
+                # Meal index
+                if not es_client.indices.exists(index=MEAL_INDEX):
+                    es_client.indices.create(
+                        index=MEAL_INDEX,
+                        body={
+                            "mappings": {
+                                "properties": {
+                                    "id": {"type": "integer"},
+                                    "user_id": {"type": "integer"},
+                                    "name": {"type": "text"},
+                                    "meal_time": {"type": "keyword"},
+                                    "details": {"type": "text"},
+                                    "planned_date": {"type": "date"},
+                                    "created_at": {"type": "date"}
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                    logger.info(f"Created {MEAL_INDEX} index")
+            except Exception as e:
+                logger.warning(f"Error creating {MEAL_INDEX} index: {str(e)}")
         else:
             elasticsearch_available = False
             logger.warning("Elasticsearch is not available. Search functionality will be disabled.")
@@ -111,7 +123,7 @@ def setup_elasticsearch_indices():
 # Function to index a checklist document
 def index_checklist(checklist, items):
     if not elasticsearch_available:
-        return
+        return True  # Return success even if Elasticsearch is not available
     
     try:
         checklist_doc = {
@@ -128,13 +140,15 @@ def index_checklist(checklist, items):
             id=checklist.id,
             document=checklist_doc
         )
+        return True  # Successful indexing
     except Exception as e:
         logger.error(f"Error indexing checklist: {str(e)}")
+        return False  # Failed indexing, but don't halt the application
 
 # Function to index a carpool event document
 def index_carpool_event(event):
     if not elasticsearch_available:
-        return
+        return True  # Return success even if Elasticsearch is not available
     
     try:
         event_doc = {
@@ -152,13 +166,15 @@ def index_carpool_event(event):
             id=event.id,
             document=event_doc
         )
+        return True  # Successful indexing
     except Exception as e:
         logger.error(f"Error indexing carpool event: {str(e)}")
+        return False  # Failed indexing, but don't halt the application
 
 # Function to index a meal document
 def index_meal(meal):
     if not elasticsearch_available:
-        return
+        return True  # Return success even if Elasticsearch is not available
     
     try:
         meal_doc = {
@@ -176,18 +192,22 @@ def index_meal(meal):
             id=meal.id,
             document=meal_doc
         )
+        return True  # Successful indexing
     except Exception as e:
         logger.error(f"Error indexing meal: {str(e)}")
+        return False  # Failed indexing, but don't halt the application
 
 # Function to delete a document from an index
 def delete_document(index, doc_id):
     if not elasticsearch_available:
-        return
+        return True  # Return success even if Elasticsearch is not available
     
     try:
         es_client.delete(index=index, id=doc_id)
+        return True  # Successful deletion
     except Exception as e:
         logger.error(f"Error deleting document: {str(e)}")
+        return False  # Failed deletion, but don't halt the application
 
 # Function to search checklists
 def search_checklists(user_id, query, size=10):

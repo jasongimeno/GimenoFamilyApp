@@ -32,8 +32,15 @@ def create_meal(
     db.commit()
     db.refresh(db_meal)
     
-    # Index in Elasticsearch
-    index_meal(db_meal)
+    # Index in Elasticsearch - but don't block if it fails
+    try:
+        index_success = index_meal(db_meal)
+        if not index_success:
+            # Log the failure, but don't halt the process
+            print(f"Warning: Failed to index meal ID {db_meal.id} in Elasticsearch, but meal was created in database")
+    except Exception as e:
+        # If indexing fails, just log the error
+        print(f"Warning: Error occurred during meal indexing: {str(e)}")
     
     return db_meal
 
@@ -102,8 +109,15 @@ def update_meal(
     db.commit()
     db.refresh(meal)
     
-    # Update in Elasticsearch
-    index_meal(meal)
+    # Update in Elasticsearch - but don't block if it fails
+    try:
+        index_success = index_meal(meal)
+        if not index_success:
+            # Log the failure, but don't halt the process
+            print(f"Warning: Failed to index meal ID {meal.id} in Elasticsearch during update, but meal was updated in database")
+    except Exception as e:
+        # If indexing fails, just log the error
+        print(f"Warning: Error occurred during meal indexing on update: {str(e)}")
     
     return meal
 
@@ -130,8 +144,12 @@ def delete_meal(
     db.delete(meal)
     db.commit()
     
-    # Delete from Elasticsearch
-    delete_document(MEAL_INDEX, meal_id)
+    # Delete from Elasticsearch - but don't block if it fails
+    try:
+        delete_document(MEAL_INDEX, meal_id)
+    except Exception as e:
+        # If deletion from Elasticsearch fails, just log the error
+        print(f"Warning: Error occurred during meal deletion from Elasticsearch: {str(e)}")
     
     return None
 

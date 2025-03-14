@@ -53,8 +53,15 @@ def create_checklist(
     for item in db_items:
         db.refresh(item)
     
-    # Index in Elasticsearch
-    index_checklist(db_checklist, db_items)
+    # Index in Elasticsearch - but don't block if it fails
+    try:
+        index_success = index_checklist(db_checklist, db_items)
+        if not index_success:
+            # Log the failure, but don't halt the process
+            print(f"Warning: Failed to index checklist ID {db_checklist.id} in Elasticsearch, but checklist was created in database")
+    except Exception as e:
+        # If indexing fails, just log the error
+        print(f"Warning: Error occurred during checklist indexing: {str(e)}")
     
     # Prepare response
     response = ChecklistResponse(
@@ -167,8 +174,15 @@ def update_checklist(
     # Get items
     items = db.query(ChecklistItem).filter(ChecklistItem.checklist_id == checklist.id).all()
     
-    # Update in Elasticsearch
-    index_checklist(checklist, items)
+    # Update in Elasticsearch - but don't block if it fails
+    try:
+        index_success = index_checklist(checklist, items)
+        if not index_success:
+            # Log the failure, but don't halt the process
+            print(f"Warning: Failed to index checklist ID {checklist.id} in Elasticsearch during update, but checklist was updated in database")
+    except Exception as e:
+        # If indexing fails, just log the error
+        print(f"Warning: Error occurred during checklist indexing on update: {str(e)}")
     
     # Prepare response
     response = ChecklistResponse(
