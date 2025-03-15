@@ -262,6 +262,31 @@ async function loadMeals() {
         const response = await window.auth.apiRequest('/meals/');
         const meals = await response.json();
         
+        // Debug log for March 17 meal
+        console.log('All meals loaded:', meals);
+        const march17Meals = meals.filter(meal => {
+            const mealDate = normalizeDate(meal.planned_date);
+            return mealDate.getUTCMonth() === 2 && mealDate.getUTCDate() === 17; // March is month 2 (0-indexed)
+        });
+        console.log('March 17 meals found in API response:', march17Meals);
+        
+        if (march17Meals.length > 0) {
+            console.log('March 17 meal details:');
+            march17Meals.forEach(meal => {
+                const originalDate = new Date(meal.planned_date);
+                const normalizedDate = normalizeDate(meal.planned_date);
+                
+                console.log(`
+                    Meal ID: ${meal.id}
+                    Name: ${meal.name}
+                    Original date string: ${meal.planned_date}
+                    Parsed date: ${originalDate.toISOString()}
+                    Normalized date: ${normalizedDate.toISOString()}
+                    Normalized date string: ${getDateString(meal.planned_date)}
+                `);
+            });
+        }
+        
         document.getElementById('loading-meals').classList.add('hidden');
         
         // Always store the meals in the global variable, even if empty
@@ -292,6 +317,39 @@ async function loadMeals() {
         window.currentMeals = [];
         throw error;  // Re-throw so caller can handle if needed
     }
+}
+
+// Fix timezone issues by normalizing date handling
+function normalizeDate(dateInput) {
+    let date;
+    
+    if (typeof dateInput === 'string') {
+        // If the date is in ISO format, parse it
+        if (dateInput.includes('T')) {
+            date = new Date(dateInput);
+        } else {
+            // If it's just a date string like "2023-03-17", ensure UTC handling
+            const [year, month, day] = dateInput.split('-').map(Number);
+            date = new Date(Date.UTC(year, month - 1, day));
+        }
+    } else if (dateInput instanceof Date) {
+        date = new Date(dateInput);
+    } else {
+        console.error('Invalid date input:', dateInput);
+        return null;
+    }
+    
+    // Force the time to be 00:00:00 UTC to avoid timezone issues
+    date.setUTCHours(0, 0, 0, 0);
+    
+    return date;
+}
+
+// Get date string in YYYY-MM-DD format, avoiding timezone issues
+function getDateString(date) {
+    const normalizedDate = normalizeDate(date);
+    // Format as YYYY-MM-DD in UTC
+    return normalizedDate.toISOString().split('T')[0];
 }
 
 // Get the Monday of the week based on the offset
@@ -351,7 +409,13 @@ function displayWeek(offset) {
         mealSlots.innerHTML = '<div class="text-gray-400 text-sm italic">No meals planned</div>';
         
         // Store the date in a data attribute for later use
-        column.dataset.date = date.toISOString().split('T')[0];
+        column.dataset.date = getDateString(date);
+        
+        // Debug: Check if this column is for March 17
+        const normalizedDate = normalizeDate(date);
+        if (normalizedDate.getUTCMonth() === 2 && normalizedDate.getUTCDate() === 17) {
+            console.log(`Found March 17 column! Date string: ${column.dataset.date}`);
+        }
     });
     
     // No need to call updateWeeklyPlanWithMeals without any meals
@@ -377,15 +441,38 @@ function updateWeeklyPlanWithMeals(meals) {
     if (!meals || !meals.length) {
         return;
     }
+
+    // Debug log for March 17 meal in updateWeeklyPlanWithMeals
+    const march17Meals = meals.filter(meal => {
+        const mealDate = normalizeDate(meal.planned_date);
+        return mealDate.getUTCMonth() === 2 && mealDate.getUTCDate() === 17; // March is month 2 (0-indexed)
+    });
+    console.log('March 17 meals in updateWeeklyPlanWithMeals:', march17Meals);
     
     const dayColumns = document.querySelectorAll('.day-column');
+    console.log('Current week columns and dates:');
+    dayColumns.forEach(column => {
+        console.log(`Column date: ${column.dataset.date}, Display: ${column.querySelector('.date-display').textContent}`);
+    });
     
     dayColumns.forEach(column => {
         const columnDate = column.dataset.date;
         const dayMeals = meals.filter(meal => {
-            const mealDate = new Date(meal.planned_date);
-            return mealDate.toISOString().split('T')[0] === columnDate;
+            const mealDateStr = getDateString(meal.planned_date);
+            
+            // Debug for March 17 items
+            const mealDate = normalizeDate(meal.planned_date);
+            if (mealDate.getUTCMonth() === 2 && mealDate.getUTCDate() === 17) {
+                console.log(`Comparing March 17 meal to column date: 
+                    Meal date: ${mealDateStr}, 
+                    Column date: ${columnDate}, 
+                    Match: ${mealDateStr === columnDate}`);
+            }
+            
+            return mealDateStr === columnDate;
         });
+        
+        console.log(`Filtered meals for date ${columnDate}:`, dayMeals);
         
         const mealSlots = column.querySelector('.meal-slots');
         

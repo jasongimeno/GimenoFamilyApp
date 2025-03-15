@@ -29,7 +29,7 @@ class ChecklistCreate(ChecklistBase):
     items: List[ChecklistItemCreate]
 
 class ChecklistUpdate(ChecklistBase):
-    pass
+    items: List[ChecklistItemCreate]
 
 class ChecklistResponse(ChecklistBase):
     id: int

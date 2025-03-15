@@ -164,19 +164,68 @@ def update_checklist(
             detail="Checklist not found"
         )
     
+    # Log the update request
+    print(f"Updating checklist {checklist_id} with {len(checklist_data.items)} items")
+    print(f"Request data: Title = '{checklist_data.title}', Category = '{checklist_data.category}'")
+    for i, item in enumerate(checklist_data.items):
+        print(f"  Item {i+1}: '{item.text}' (Required: {item.is_required})")
+    
     # Update checklist
     checklist.title = checklist_data.title
     checklist.category = checklist_data.category
     
-    db.commit()
-    db.refresh(checklist)
+    # Get existing items
+    existing_items = db.query(ChecklistItem).filter(ChecklistItem.checklist_id == checklist.id).all()
+    existing_item_map = {item.id: item for item in existing_items}
     
-    # Get items
-    items = db.query(ChecklistItem).filter(ChecklistItem.checklist_id == checklist.id).all()
+    print(f"Checklist has {len(existing_items)} existing items")
+    
+    # Process items - we'll track which existing items to keep
+    db_items = []
+    items_to_keep_ids = set()
+    
+    # Create new items or update existing ones
+    for i, item_data in enumerate(checklist_data.items):
+        # If this is an existing item that was just edited and still in the same position
+        if i < len(existing_items):
+            existing_item = existing_items[i]
+            existing_item.text = item_data.text
+            existing_item.is_required = item_data.is_required
+            db_items.append(existing_item)
+            items_to_keep_ids.add(existing_item.id)
+            print(f"Updated existing item {existing_item.id}: {item_data.text}")
+        else:
+            # This is a new item
+            db_item = ChecklistItem(
+                checklist_id=checklist.id,
+                text=item_data.text,
+                is_required=item_data.is_required
+            )
+            db.add(db_item)
+            db_items.append(db_item)
+            print(f"Added new item: {item_data.text}")
+    
+    # Delete items that no longer exist
+    items_deleted = 0
+    for item_id, item in existing_item_map.items():
+        if item_id not in items_to_keep_ids:
+            db.delete(item)
+            items_deleted += 1
+    
+    print(f"Deleted {items_deleted} items that were removed")
+    
+    db.commit()
+    
+    # Refresh everything
+    db.refresh(checklist)
+    for item in db_items:
+        db.refresh(item)
+    
+    print(f"Update complete, checklist now has {len(db_items)} items")
     
     # Update in Elasticsearch - but don't block if it fails
     try:
-        index_success = index_checklist(checklist, items)
+        index_success = index_checklist(checklist, db_items)
         if not index_success:
             # Log the failure, but don't halt the process
             print(f"Warning: Failed to index checklist ID {checklist.id} in Elasticsearch during update, but checklist was updated in database")
@@ -196,7 +245,7 @@ def update_checklist(
             "checklist_id": item.checklist_id,
             "text": item.text,
             "is_required": item.is_required
-        } for item in items]
+        } for item in db_items]
     )
     
     return response
@@ -374,6 +423,49 @@ def update_run_item(
     db.refresh(run_item)
     
     return {"success": True}
+
+# Get all runs for a specific checklist
+@router.get("/{checklist_id}/runs", response_model=List[ChecklistRunResponse])
+def get_checklist_runs(
+    checklist_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Verify checklist exists and belongs to user
+    checklist = db.query(Checklist).filter(Checklist.id == checklist_id, Checklist.user_id == current_user.id).first()
+    if not checklist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Checklist not found"
+        )
+    
+    # Get all runs for this checklist
+    runs = db.query(ChecklistRun).filter(ChecklistRun.checklist_id == checklist_id).order_by(ChecklistRun.started_at.desc()).all()
+    
+    # Prepare response
+    response = []
+    for run in runs:
+        # Get run items
+        run_items = db.query(ChecklistRunItem).filter(ChecklistRunItem.run_id == run.id).all()
+        
+        # Add to response
+        response.append(ChecklistRunResponse(
+            id=run.id,
+            checklist_id=run.checklist_id,
+            started_at=run.started_at,
+            completed_at=run.completed_at,
+            email_sent_to=run.email_sent_to,
+            notes=run.notes,
+            run_items=[{
+                "id": run_item.id,
+                "run_id": run_item.run_id,
+                "item_id": run_item.item_id,
+                "completed": run_item.completed,
+                "notes": run_item.notes
+            } for run_item in run_items]
+        ))
+    
+    return response
 
 # Complete a checklist run
 @router.post("/runs/{run_id}/complete", response_model=ChecklistRunResponse)

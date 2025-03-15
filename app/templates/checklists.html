@@ -69,80 +69,144 @@
     <div id="checklists-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Checklists will be populated dynamically -->
     </div>
-</div>
 
-<!-- Create/Edit Checklist Modal -->
-<div id="checklist-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 id="modal-title" class="text-xl font-medium text-gray-900">Create New Checklist</h3>
-            <button id="close-modal" class="text-gray-400 hover:text-gray-500">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+    <!-- Checklist Run History -->
+    <div id="checklist-run-history" class="mt-12 hidden">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold text-blue-700">Checklist Run History</h2>
+            <button id="history-back-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded">
+                Back to Checklists
             </button>
         </div>
-
-        <form id="checklist-form" class="mt-4">
-            <input type="hidden" id="checklist-id">
-            <div class="mb-4">
-                <label for="checklist-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input type="text" id="checklist-title" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 id="history-checklist-title" class="text-lg font-semibold mb-4"></h3>
+            
+            <div id="run-history-loading" class="hidden text-center py-10">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-600">Loading history...</p>
             </div>
-            <div class="mb-4">
-                <label for="checklist-category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <input type="text" id="checklist-category" name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Travel, Daily, Shopping">
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Items</label>
-                <div id="checklist-items" class="space-y-2">
-                    <!-- Items will be populated dynamically for editing, or have one empty item for new checklists -->
-                    <div class="flex items-center space-x-2">
-                        <input type="text" name="item-text" class="flex-grow px-3 py-2 border border-gray-300 rounded-md" placeholder="Item text" required>
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" name="item-required" class="form-checkbox" checked>
-                            <span class="ml-2 text-sm text-gray-700">Required</span>
-                        </label>
-                        <button type="button" class="remove-item text-red-500 hover:text-red-700">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <button type="button" id="add-item" class="mt-2 inline-flex items-center text-blue-600 hover:text-blue-700">
-                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    Add Item
+            
+            <div id="no-run-history" class="hidden text-center py-10">
+                <svg class="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h2 class="mt-2 text-lg font-medium text-gray-900">No checklist runs found</h2>
+                <p class="mt-1 text-gray-600">This checklist hasn't been run yet.</p>
+                <button id="no-history-run-btn" class="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                    Run Checklist Now
                 </button>
             </div>
-            <div class="flex justify-end mt-6 space-x-3">
-                <button type="button" id="cancel-checklist" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
-                    Cancel
-                </button>
-                <button type="submit" id="save-checklist" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    Save Checklist
-                </button>
+            
+            <div id="run-history-table" class="hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="run-history-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Run history rows will be populated dynamically -->
+                    </tbody>
+                </table>
             </div>
-        </form>
+        </div>
     </div>
-</div>
 
-<!-- Run Checklist Modal -->
-<div id="run-checklist-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-        <div class="flex justify-between items-center border-b pb-3">
-            <h3 id="run-modal-title" class="text-xl font-medium text-gray-900">Run Checklist</h3>
-            <button id="close-run-modal" class="text-gray-400 hover:text-gray-500">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
+    <!-- Run Details Modal -->
+    <div id="run-details-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="details-modal-title" class="text-xl font-medium text-gray-900">Checklist Run Details</h3>
+                <button id="close-details-modal" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="run-details-content" class="mt-4">
+                <!-- Run details will be populated dynamically -->
+            </div>
         </div>
+    </div>
 
-        <div id="run-checklist-content" class="mt-4">
-            <!-- Run content will be populated dynamically -->
+    <!-- Create/Edit Checklist Modal -->
+    <div id="checklist-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="modal-title" class="text-xl font-medium text-gray-900">Create New Checklist</h3>
+                <button id="close-modal" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="checklist-form" class="mt-4">
+                <input type="hidden" id="checklist-id">
+                <div class="mb-4">
+                    <label for="checklist-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <input type="text" id="checklist-title" name="title" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                </div>
+                <div class="mb-4">
+                    <label for="checklist-category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <input type="text" id="checklist-category" name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g., Travel, Daily, Shopping">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Items</label>
+                    <div id="checklist-items" class="space-y-2">
+                        <!-- Items will be populated dynamically for editing, or have one empty item for new checklists -->
+                        <div class="flex items-center space-x-2">
+                            <input type="text" name="item-text" class="flex-grow px-3 py-2 border border-gray-300 rounded-md" placeholder="Item text" required>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" name="item-required" class="form-checkbox" checked>
+                                <span class="ml-2 text-sm text-gray-700">Required</span>
+                            </label>
+                            <button type="button" class="remove-item text-red-500 hover:text-red-700">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="add-item" class="mt-2 inline-flex items-center text-blue-600 hover:text-blue-700">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+                <div class="flex justify-end mt-6 space-x-3">
+                    <button type="button" id="cancel-checklist" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
+                        Cancel
+                    </button>
+                    <button type="submit" id="save-checklist" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Save Checklist
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Run Checklist Modal -->
+    <div id="run-checklist-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="run-modal-title" class="text-xl font-medium text-gray-900">Run Checklist</h3>
+                <button id="close-run-modal" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div id="run-checklist-content" class="mt-4">
+                <!-- Run content will be populated dynamically -->
+            </div>
         </div>
     </div>
 </div>
@@ -182,26 +246,53 @@
         fetchChecklists();
 
         // Functions
-        function fetchChecklists() {
+        async function fetchChecklists() {
             showLoading(true);
             
-            window.auth.apiRequest('/checklists/')
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Failed to fetch checklists');
-                })
-                .then(checklists => {
+            try {
+                const response = await window.auth.apiRequest('/checklists/');
+                if (response.ok) {
+                    const checklists = await response.json();
+                    await loadInProgressRuns(checklists);
                     renderChecklists(checklists);
-                })
-                .catch(error => {
-                    console.error('Error fetching checklists:', error);
-                    window.app.showNotification('Failed to load checklists', 'error');
-                })
-                .finally(() => {
-                    showLoading(false);
-                });
+                } else {
+                    throw new Error('Failed to fetch checklists');
+                }
+            } catch (error) {
+                console.error('Error fetching checklists:', error);
+                window.app.showNotification('Failed to load checklists', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Function to load in-progress runs for each checklist
+        async function loadInProgressRuns(checklists) {
+            // For each checklist, check if there are any in-progress runs
+            for (const checklist of checklists) {
+                try {
+                    const response = await window.auth.apiRequest(`/checklists/${checklist.id}/runs`);
+                    if (response.ok) {
+                        const runs = await response.json();
+                        // Filter to only in-progress runs (runs with no completed_at date)
+                        const inProgressRuns = runs.filter(run => !run.completed_at);
+                        
+                        if (inProgressRuns.length > 0) {
+                            // Sort by started_at in descending order to get the latest
+                            inProgressRuns.sort((a, b) => 
+                                new Date(b.started_at) - new Date(a.started_at)
+                            );
+                            
+                            // Attach the latest in-progress run to the checklist object
+                            checklist.latestInProgressRun = inProgressRuns[0];
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error fetching runs for checklist ${checklist.id}:`, error);
+                }
+            }
+            
+            return checklists;
         }
 
         function renderChecklists(checklists) {
@@ -245,9 +336,19 @@
                                 </svg>
                             </button>
                         </div>
-                        <button class="run-checklist bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm" data-id="${checklist.id}">
-                            Run Checklist
-                        </button>
+                        <div class="space-x-2">
+                            <button class="view-history bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm" data-id="${checklist.id}">
+                                View History
+                            </button>
+                            ${checklist.latestInProgressRun ? `
+                            <button class="continue-checklist bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm" data-id="${checklist.id}" data-run-id="${checklist.latestInProgressRun.id}">
+                                Continue
+                            </button>
+                            ` : ''}
+                            <button class="run-checklist bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm" data-id="${checklist.id}">
+                                Run Checklist
+                            </button>
+                        </div>
                     </div>
                 `;
                 
@@ -257,6 +358,16 @@
                 card.querySelector('.edit-checklist').addEventListener('click', () => editChecklist(checklist.id));
                 card.querySelector('.delete-checklist').addEventListener('click', () => deleteChecklist(checklist.id));
                 card.querySelector('.run-checklist').addEventListener('click', () => runChecklist(checklist.id));
+                card.querySelector('.view-history').addEventListener('click', () => viewChecklistHistory(checklist.id));
+                
+                // Add event listener for Continue button if it exists
+                const continueButton = card.querySelector('.continue-checklist');
+                if (continueButton) {
+                    continueButton.addEventListener('click', () => {
+                        const runId = continueButton.dataset.runId;
+                        continueChecklistRun(checklist.id, runId);
+                    });
+                }
             });
         }
 
@@ -473,9 +584,679 @@
         }
 
         function runChecklist(checklistId) {
-            // More complex functionality would be implemented here
-            window.app.showNotification('Run checklist functionality will be implemented soon', 'info');
+            // Get checklist data
+            window.auth.apiRequest(`/checklists/${checklistId}`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch checklist details');
+            })
+            .then(checklist => {
+                // Start a new checklist run
+                return window.auth.apiRequest('/checklists/runs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        checklist_id: checklistId
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Failed to start checklist run');
+                })
+                .then(runData => {
+                    // Return both checklist and run data
+                    return { checklist, runData };
+                });
+            })
+            .then(data => {
+                // Set modal title
+                document.getElementById('run-modal-title').textContent = `Run Checklist: ${data.checklist.title}`;
+                
+                // Build the checklist content
+                const contentDiv = document.getElementById('run-checklist-content');
+                contentDiv.innerHTML = '';
+                
+                // Create the form for checklist items
+                const form = document.createElement('form');
+                form.id = 'run-checklist-form';
+                form.dataset.runId = data.runData.id;
+                form.dataset.checklistId = data.checklist.id;
+                
+                // Create a div for checklist items
+                const itemsDiv = document.createElement('div');
+                itemsDiv.className = 'space-y-4 mb-6';
+                
+                // Add each checklist item
+                data.checklist.items.forEach(item => {
+                    // Find the corresponding run item
+                    const runItem = data.runData.run_items.find(ri => ri.item_id === item.id);
+                    if (!runItem) return;
+                    
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'flex items-start space-x-3 p-3 border rounded-lg ' + 
+                                        (item.is_required ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50');
+                    
+                    // Create checkbox
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'mt-1 h-5 w-5 text-blue-600 focus:ring-blue-500';
+                    checkbox.dataset.itemId = item.id;
+                    checkbox.dataset.runItemId = runItem.id;
+                    checkbox.checked = runItem.completed;
+                    checkbox.addEventListener('change', function() {
+                        updateRunItem(data.runData.id, item.id, this.checked);
+                    });
+                    
+                    const labelDiv = document.createElement('div');
+                    labelDiv.className = 'flex-1';
+                    
+                    // Create item text
+                    const itemText = document.createElement('label');
+                    itemText.className = 'block font-medium text-gray-700';
+                    itemText.textContent = item.text;
+                    if (item.is_required) {
+                        const requiredSpan = document.createElement('span');
+                        requiredSpan.className = 'ml-1 text-red-500';
+                        requiredSpan.textContent = '*';
+                        itemText.appendChild(requiredSpan);
+                    }
+                    
+                    // Create notes input
+                    const notesInput = document.createElement('input');
+                    notesInput.type = 'text';
+                    notesInput.className = 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
+                    notesInput.placeholder = 'Add notes (optional)';
+                    notesInput.dataset.itemId = item.id;
+                    notesInput.value = runItem.notes || '';
+                    notesInput.addEventListener('blur', function() {
+                        updateRunItemNotes(data.runData.id, item.id, this.value);
+                    });
+                    
+                    // Add everything to the DOM
+                    labelDiv.appendChild(itemText);
+                    labelDiv.appendChild(notesInput);
+                    itemDiv.appendChild(checkbox);
+                    itemDiv.appendChild(labelDiv);
+                    itemsDiv.appendChild(itemDiv);
+                });
+                
+                form.appendChild(itemsDiv);
+                
+                // Add Complete button
+                const buttonDiv = document.createElement('div');
+                buttonDiv.className = 'flex justify-between border-t pt-4';
+                
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100';
+                cancelButton.textContent = 'Cancel';
+                cancelButton.addEventListener('click', () => {
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                });
+                
+                const continueLaterButton = document.createElement('button');
+                continueLaterButton.type = 'button';
+                continueLaterButton.className = 'px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700';
+                continueLaterButton.textContent = 'Continue Later';
+                continueLaterButton.addEventListener('click', () => {
+                    // Simply close the modal but keep the run in progress
+                    window.app.showNotification('Progress saved. You can continue this checklist later.', 'success');
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                    fetchChecklists(); // Refresh the checklists view
+                });
+                
+                const completeButton = document.createElement('button');
+                completeButton.type = 'button';
+                completeButton.className = 'px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700';
+                completeButton.textContent = 'Complete Checklist';
+                completeButton.addEventListener('click', () => {
+                    completeChecklistRun(data.runData.id);
+                });
+                
+                buttonDiv.appendChild(cancelButton);
+                buttonDiv.appendChild(continueLaterButton);
+                buttonDiv.appendChild(completeButton);
+                form.appendChild(buttonDiv);
+                
+                contentDiv.appendChild(form);
+                
+                // Show modal
+                document.getElementById('run-checklist-modal').classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error running checklist:', error);
+                window.app.showNotification('Failed to run checklist', 'error');
+            });
         }
+        
+        function updateRunItem(runId, itemId, completed) {
+            window.auth.apiRequest(`/checklists/runs/${runId}/items/${itemId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    completed: completed,
+                    notes: document.querySelector(`input[data-item-id="${itemId}"][type="text"]`).value
+                })
+            })
+            .catch(error => {
+                console.error('Error updating run item:', error);
+                window.app.showNotification('Failed to update item', 'error');
+            });
+        }
+        
+        function updateRunItemNotes(runId, itemId, notes) {
+            const checkbox = document.querySelector(`input[data-item-id="${itemId}"][type="checkbox"]`);
+            window.auth.apiRequest(`/checklists/runs/${runId}/items/${itemId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    completed: checkbox.checked,
+                    notes: notes
+                })
+            })
+            .catch(error => {
+                console.error('Error updating run item notes:', error);
+                window.app.showNotification('Failed to update notes', 'error');
+            });
+        }
+        
+        function completeChecklistRun(runId) {
+            window.auth.apiRequest(`/checklists/runs/${runId}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.app.showNotification('Checklist completed successfully', 'success');
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                    fetchChecklists(); // Refresh the checklists
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.detail || 'Failed to complete checklist');
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error completing checklist run:', error);
+                window.app.showNotification(error.message, 'error');
+            });
+        }
+        
+        function viewChecklistHistory(checklistId) {
+            // Get checklist data
+            window.auth.apiRequest(`/checklists/${checklistId}`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch checklist details');
+            })
+            .then(checklist => {
+                // Set checklist title
+                document.getElementById('history-checklist-title').textContent = `History for: ${checklist.title}`;
+                
+                // Show loading
+                document.getElementById('run-history-loading').classList.remove('hidden');
+                document.getElementById('no-run-history').classList.add('hidden');
+                document.getElementById('run-history-table').classList.add('hidden');
+                
+                // Fetch checklist runs
+                window.auth.apiRequest(`/checklists/${checklistId}/runs`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Failed to fetch checklist runs');
+                })
+                .then(runs => {
+                    // Hide loading
+                    document.getElementById('run-history-loading').classList.add('hidden');
+                    
+                    if (runs.length === 0) {
+                        // Show no runs message
+                        document.getElementById('no-run-history').classList.remove('hidden');
+                        
+                        // Set up run button
+                        document.getElementById('no-history-run-btn').dataset.checklistId = checklistId;
+                        document.getElementById('no-history-run-btn').addEventListener('click', () => {
+                            showChecklistsView();
+                            runChecklist(checklistId);
+                        });
+                    } else {
+                        // Show runs table
+                        document.getElementById('run-history-table').classList.remove('hidden');
+                        
+                        // Populate table
+                        const tableBody = document.getElementById('run-history-body');
+                        tableBody.innerHTML = '';
+                        
+                        runs.forEach(run => {
+                            const completedItems = run.run_items.filter(item => item.completed).length;
+                            const totalItems = run.run_items.length;
+                            
+                            const row = document.createElement('tr');
+                            
+                            // Date column
+                            const dateCell = document.createElement('td');
+                            dateCell.className = 'px-6 py-4 whitespace-nowrap';
+                            
+                            const date = new Date(run.started_at);
+                            dateCell.innerHTML = `
+                                <div class="text-sm text-gray-900">${date.toLocaleDateString()}</div>
+                                <div class="text-sm text-gray-500">${date.toLocaleTimeString()}</div>
+                            `;
+                            
+                            // Status column
+                            const statusCell = document.createElement('td');
+                            statusCell.className = 'px-6 py-4 whitespace-nowrap';
+                            
+                            if (run.completed_at) {
+                                const completeDate = new Date(run.completed_at);
+                                statusCell.innerHTML = `
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Completed
+                                    </span>
+                                    <div class="text-xs text-gray-500 mt-1">${completeDate.toLocaleString()}</div>
+                                `;
+                            } else {
+                                statusCell.innerHTML = `
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        In Progress
+                                    </span>
+                                `;
+                            }
+                            
+                            // Completion column
+                            const completionCell = document.createElement('td');
+                            completionCell.className = 'px-6 py-4 whitespace-nowrap';
+                            
+                            const completionPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+                            completionCell.innerHTML = `
+                                <div class="text-sm text-gray-900">${completedItems}/${totalItems} (${completionPercentage}%)</div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${completionPercentage}%"></div>
+                                </div>
+                            `;
+                            
+                            // Actions column
+                            const actionsCell = document.createElement('td');
+                            actionsCell.className = 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium';
+                            
+                            const viewButton = document.createElement('button');
+                            viewButton.className = 'text-indigo-600 hover:text-indigo-900 mr-3';
+                            viewButton.textContent = 'View Details';
+                            viewButton.addEventListener('click', () => {
+                                viewRunDetails(run.id);
+                            });
+                            
+                            actionsCell.appendChild(viewButton);
+                            
+                            // If run is not completed, add continue button
+                            if (!run.completed_at) {
+                                const continueButton = document.createElement('button');
+                                continueButton.className = 'text-green-600 hover:text-green-900';
+                                continueButton.textContent = 'Continue';
+                                continueButton.addEventListener('click', () => {
+                                    continueChecklistRun(checklistId, run.id);
+                                });
+                                
+                                actionsCell.appendChild(continueButton);
+                            }
+                            
+                            // Add cells to row
+                            row.appendChild(dateCell);
+                            row.appendChild(statusCell);
+                            row.appendChild(completionCell);
+                            row.appendChild(actionsCell);
+                            
+                            // Add row to table
+                            tableBody.appendChild(row);
+                        });
+                    }
+                    
+                    // Show history view
+                    document.getElementById('checklists-grid').classList.add('hidden');
+                    document.getElementById('checklist-run-history').classList.remove('hidden');
+                    
+                    // Set up back button
+                    document.getElementById('history-back-btn').addEventListener('click', showChecklistsView);
+                })
+                .catch(error => {
+                    console.error('Error fetching checklist runs:', error);
+                    window.app.showNotification('Failed to fetch checklist runs', 'error');
+                    document.getElementById('run-history-loading').classList.add('hidden');
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching checklist details:', error);
+                window.app.showNotification('Failed to fetch checklist details', 'error');
+            });
+        }
+        
+        function showChecklistsView() {
+            document.getElementById('checklists-grid').classList.remove('hidden');
+            document.getElementById('checklist-run-history').classList.add('hidden');
+        }
+        
+        function viewRunDetails(runId) {
+            // Fetch run details
+            window.auth.apiRequest(`/checklists/runs/${runId}`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch run details');
+            })
+            .then(run => {
+                // Get checklist data to get item text
+                return window.auth.apiRequest(`/checklists/${run.checklist_id}`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Failed to fetch checklist details');
+                })
+                .then(checklist => {
+                    return { run, checklist };
+                });
+            })
+            .then(data => {
+                // Set modal title
+                document.getElementById('details-modal-title').textContent = `Run Details: ${data.checklist.title}`;
+                
+                // Build the run details content
+                const contentDiv = document.getElementById('run-details-content');
+                contentDiv.innerHTML = '';
+                
+                // Create run info section
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'bg-gray-50 p-4 rounded-lg mb-4';
+                
+                const startDate = new Date(data.run.started_at);
+                let statusHtml = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>`;
+                let completedDateHtml = '';
+                
+                if (data.run.completed_at) {
+                    const completeDate = new Date(data.run.completed_at);
+                    statusHtml = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>`;
+                    completedDateHtml = `
+                        <div class="mt-2">
+                            <span class="font-medium text-gray-700">Completed at:</span>
+                            <span class="ml-2">${completeDate.toLocaleString()}</span>
+                        </div>
+                    `;
+                }
+                
+                infoDiv.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div>
+                                <span class="font-medium text-gray-700">Started at:</span>
+                                <span class="ml-2">${startDate.toLocaleString()}</span>
+                            </div>
+                            ${completedDateHtml}
+                            ${data.run.notes ? `
+                                <div class="mt-2">
+                                    <span class="font-medium text-gray-700">Notes:</span>
+                                    <p class="mt-1 text-gray-600">${data.run.notes}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div>
+                            ${statusHtml}
+                        </div>
+                    </div>
+                `;
+                
+                contentDiv.appendChild(infoDiv);
+                
+                // Create items section
+                const itemsDiv = document.createElement('div');
+                itemsDiv.className = 'space-y-4';
+                
+                // Add each checklist item
+                data.checklist.items.forEach(item => {
+                    // Find the corresponding run item
+                    const runItem = data.run.run_items.find(ri => ri.item_id === item.id);
+                    if (!runItem) return;
+                    
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'flex items-start space-x-3 p-3 border rounded-lg ' + 
+                                      (item.is_required ? 'border-red-200' : 'border-gray-200') + ' ' +
+                                      (runItem.completed ? 'bg-green-50' : 'bg-gray-50');
+                    
+                    // Create checkbox (readonly)
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'mt-1 h-5 w-5 text-blue-600';
+                    checkbox.checked = runItem.completed;
+                    checkbox.disabled = true;
+                    
+                    const labelDiv = document.createElement('div');
+                    labelDiv.className = 'flex-1';
+                    
+                    // Create item text
+                    const itemText = document.createElement('div');
+                    itemText.className = 'font-medium text-gray-700';
+                    itemText.textContent = item.text;
+                    if (item.is_required) {
+                        const requiredSpan = document.createElement('span');
+                        requiredSpan.className = 'ml-1 text-red-500';
+                        requiredSpan.textContent = '*';
+                        itemText.appendChild(requiredSpan);
+                    }
+                    
+                    // Add notes if any
+                    let notesDiv = '';
+                    if (runItem.notes) {
+                        notesDiv = document.createElement('div');
+                        notesDiv.className = 'mt-1 text-sm text-gray-600';
+                        notesDiv.textContent = `Notes: ${runItem.notes}`;
+                    }
+                    
+                    // Add everything to the DOM
+                    labelDiv.appendChild(itemText);
+                    if (notesDiv) labelDiv.appendChild(notesDiv);
+                    itemDiv.appendChild(checkbox);
+                    itemDiv.appendChild(labelDiv);
+                    itemsDiv.appendChild(itemDiv);
+                });
+                
+                contentDiv.appendChild(itemsDiv);
+                
+                // Add close button
+                const buttonDiv = document.createElement('div');
+                buttonDiv.className = 'flex justify-end mt-6 border-t pt-4';
+                
+                const closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300';
+                closeButton.textContent = 'Close';
+                closeButton.addEventListener('click', () => {
+                    document.getElementById('run-details-modal').classList.add('hidden');
+                });
+                
+                buttonDiv.appendChild(closeButton);
+                contentDiv.appendChild(buttonDiv);
+                
+                // Show modal
+                document.getElementById('run-details-modal').classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error fetching run details:', error);
+                window.app.showNotification('Failed to fetch run details', 'error');
+            });
+        }
+        
+        function continueChecklistRun(checklistId, runId) {
+            // Get checklist data
+            window.auth.apiRequest(`/checklists/${checklistId}`)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch checklist details');
+            })
+            .then(checklist => {
+                // Get run data
+                return window.auth.apiRequest(`/checklists/runs/${runId}`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Failed to fetch run details');
+                })
+                .then(runData => {
+                    // Return both checklist and run data
+                    return { checklist, runData };
+                });
+            })
+            .then(data => {
+                // Switch back to checklists view
+                showChecklistsView();
+                
+                // Set modal title
+                document.getElementById('run-modal-title').textContent = `Continue Checklist: ${data.checklist.title}`;
+                
+                // Build the checklist content (similar to runChecklist function)
+                const contentDiv = document.getElementById('run-checklist-content');
+                contentDiv.innerHTML = '';
+                
+                // Create the form for checklist items
+                const form = document.createElement('form');
+                form.id = 'run-checklist-form';
+                form.dataset.runId = data.runData.id;
+                form.dataset.checklistId = data.checklist.id;
+                
+                // Create a div for checklist items
+                const itemsDiv = document.createElement('div');
+                itemsDiv.className = 'space-y-4 mb-6';
+                
+                // Add each checklist item
+                data.checklist.items.forEach(item => {
+                    // Find the corresponding run item
+                    const runItem = data.runData.run_items.find(ri => ri.item_id === item.id);
+                    if (!runItem) return;
+                    
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'flex items-start space-x-3 p-3 border rounded-lg ' + 
+                                       (item.is_required ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50');
+                    
+                    // Create checkbox
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'mt-1 h-5 w-5 text-blue-600 focus:ring-blue-500';
+                    checkbox.dataset.itemId = item.id;
+                    checkbox.dataset.runItemId = runItem.id;
+                    checkbox.checked = runItem.completed;
+                    checkbox.addEventListener('change', function() {
+                        updateRunItem(data.runData.id, item.id, this.checked);
+                    });
+                    
+                    const labelDiv = document.createElement('div');
+                    labelDiv.className = 'flex-1';
+                    
+                    // Create item text
+                    const itemText = document.createElement('label');
+                    itemText.className = 'block font-medium text-gray-700';
+                    itemText.textContent = item.text;
+                    if (item.is_required) {
+                        const requiredSpan = document.createElement('span');
+                        requiredSpan.className = 'ml-1 text-red-500';
+                        requiredSpan.textContent = '*';
+                        itemText.appendChild(requiredSpan);
+                    }
+                    
+                    // Create notes input
+                    const notesInput = document.createElement('input');
+                    notesInput.type = 'text';
+                    notesInput.className = 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
+                    notesInput.placeholder = 'Add notes (optional)';
+                    notesInput.dataset.itemId = item.id;
+                    notesInput.value = runItem.notes || '';
+                    notesInput.addEventListener('blur', function() {
+                        updateRunItemNotes(data.runData.id, item.id, this.value);
+                    });
+                    
+                    // Add everything to the DOM
+                    labelDiv.appendChild(itemText);
+                    labelDiv.appendChild(notesInput);
+                    itemDiv.appendChild(checkbox);
+                    itemDiv.appendChild(labelDiv);
+                    itemsDiv.appendChild(itemDiv);
+                });
+                
+                form.appendChild(itemsDiv);
+                
+                // Add Complete button
+                const buttonDiv = document.createElement('div');
+                buttonDiv.className = 'flex justify-between border-t pt-4';
+                
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100';
+                cancelButton.textContent = 'Cancel';
+                cancelButton.addEventListener('click', () => {
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                });
+                
+                const continueLaterButton = document.createElement('button');
+                continueLaterButton.type = 'button';
+                continueLaterButton.className = 'px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700';
+                continueLaterButton.textContent = 'Continue Later';
+                continueLaterButton.addEventListener('click', () => {
+                    // Simply close the modal but keep the run in progress
+                    window.app.showNotification('Progress saved. You can continue this checklist later.', 'success');
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                    fetchChecklists(); // Refresh the checklists view
+                });
+                
+                const completeButton = document.createElement('button');
+                completeButton.type = 'button';
+                completeButton.className = 'px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700';
+                completeButton.textContent = 'Complete Checklist';
+                completeButton.addEventListener('click', () => {
+                    completeChecklistRun(data.runData.id);
+                });
+                
+                buttonDiv.appendChild(cancelButton);
+                buttonDiv.appendChild(continueLaterButton);
+                buttonDiv.appendChild(completeButton);
+                form.appendChild(buttonDiv);
+                
+                contentDiv.appendChild(form);
+                
+                // Show modal
+                document.getElementById('run-checklist-modal').classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error continuing checklist run:', error);
+                window.app.showNotification('Failed to continue checklist run', 'error');
+            });
+        }
+        
+        // Close run modal when clicking the close button
+        document.getElementById('close-run-modal').addEventListener('click', () => {
+            document.getElementById('run-checklist-modal').classList.add('hidden');
+        });
+        
+        // Close details modal when clicking the close button
+        document.getElementById('close-details-modal').addEventListener('click', () => {
+            document.getElementById('run-details-modal').classList.add('hidden');
+        });
     });
 </script>
 {% endblock %} 
