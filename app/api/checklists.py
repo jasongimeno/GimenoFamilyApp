@@ -1,19 +1,25 @@
-from typing import List
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
+import logging
 
 from app.db.database import get_db
 from app.models.user import User
 from app.models.checklist import Checklist, ChecklistItem, ChecklistRun, ChecklistRunItem
 from app.schemas.checklist import (
-    ChecklistCreate, ChecklistResponse, ChecklistUpdate,
+    ChecklistCreate, ChecklistResponse, ChecklistUpdate, 
     ChecklistRunCreate, ChecklistRunResponse, ChecklistRunItemUpdate,
-    CompleteChecklistRunRequest
+    ChecklistReportRequest
 )
 from app.utils.auth import get_current_user
-from app.utils.elastic import index_checklist, delete_document, CHECKLIST_INDEX, search_checklists
+from app.utils.elastic import index_checklist, delete_document, CHECKLIST_INDEX
 from app.utils.email import send_checklist_report, generate_checklist_report_html
+from app.core.config import ENABLE_ELASTICSEARCH, ENABLE_SEARCH
+from app.utils.azure_search import search_checklists as azure_search_checklists
+from app.utils.logger import logger
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/checklists", tags=["Checklists"])
 
@@ -471,7 +477,7 @@ def get_checklist_runs(
 @router.post("/runs/{run_id}/complete", response_model=ChecklistRunResponse)
 def complete_checklist_run(
     run_id: int,
-    complete_data: CompleteChecklistRunRequest,
+    complete_data: ChecklistReportRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -573,8 +579,29 @@ def search(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Search in Elasticsearch
-    search_results = search_checklists(current_user.id, q)
+    search_results = {"hits": {"hits": []}}
+    
+    # Try Azure Cognitive Search first if enabled
+    if ENABLE_SEARCH:
+        try:
+            from app.utils.azure_search import search_checklists as azure_search_checklists
+            search_results = azure_search_checklists(current_user.id, q)
+            logger.info(f"Using Azure Cognitive Search for checklist search with query: {q}")
+        except ImportError:
+            logger.warning("Azure Cognitive Search module not found, falling back to Elasticsearch")
+        except Exception as e:
+            logger.error(f"Error using Azure Cognitive Search: {str(e)}, falling back to Elasticsearch")
+    
+    # Fallback to Elasticsearch if Azure Search failed or is disabled
+    if not search_results["hits"]["hits"] and ENABLE_ELASTICSEARCH:
+        try:
+            from app.utils.elastic import search_checklists as es_search_checklists
+            search_results = es_search_checklists(current_user.id, q)
+            logger.info(f"Using Elasticsearch for checklist search with query: {q}")
+        except ImportError:
+            logger.warning("Elasticsearch module not found")
+        except Exception as e:
+            logger.error(f"Error using Elasticsearch: {str(e)}")
     
     # Extract checklist IDs
     checklist_ids = [hit["_source"]["id"] for hit in search_results["hits"]["hits"]]

@@ -1,13 +1,18 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import logging
 
 from app.db.database import get_db
 from app.models.user import User
 from app.models.carpool import CarpoolEvent
 from app.schemas.carpool import CarpoolEventCreate, CarpoolEventResponse, CarpoolEventUpdate, CarpoolSearchQuery
 from app.utils.auth import get_current_user
-from app.utils.elastic import index_carpool_event, delete_document, CARPOOL_INDEX, search_carpool_events
+from app.utils.elastic import delete_document, CARPOOL_INDEX
+from app.core.config import ENABLE_ELASTICSEARCH, ENABLE_SEARCH
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/carpool", tags=["Carpool Management"])
 
@@ -32,15 +37,21 @@ def create_carpool_event(
     db.commit()
     db.refresh(db_event)
     
-    # Index in Elasticsearch - but don't block if it fails
+    # Index in search service - but don't block if it fails
     try:
-        index_success = index_carpool_event(db_event)
-        if not index_success:
-            # Log the failure, but don't halt the process
-            print(f"Warning: Failed to index carpool event ID {db_event.id} in Elasticsearch, but event was created in database")
+        if ENABLE_SEARCH:
+            from app.utils.azure_search import index_carpool_event as azure_index_carpool_event
+            index_success = azure_index_carpool_event(db_event)
+            if not index_success:
+                logger.warning(f"Failed to index carpool event ID {db_event.id} in Azure Search, but event was created in database")
+        elif ENABLE_ELASTICSEARCH:
+            from app.utils.elastic import index_carpool_event as es_index_carpool_event
+            index_success = es_index_carpool_event(db_event)
+            if not index_success:
+                logger.warning(f"Failed to index carpool event ID {db_event.id} in Elasticsearch, but event was created in database")
     except Exception as e:
         # If indexing fails, just log the error
-        print(f"Warning: Error occurred during carpool event indexing: {str(e)}")
+        logger.warning(f"Error occurred during carpool event indexing: {str(e)}")
     
     return db_event
 
@@ -160,8 +171,29 @@ def search_events(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Search in Elasticsearch
-    search_results = search_carpool_events(current_user.id, search_query.query)
+    search_results = {"hits": {"hits": []}}
+    
+    # Try Azure Cognitive Search first if enabled
+    if ENABLE_SEARCH:
+        try:
+            from app.utils.azure_search import search_carpool_events as azure_search_carpool_events
+            search_results = azure_search_carpool_events(current_user.id, search_query.query)
+            logger.info(f"Using Azure Cognitive Search for carpool search with query: {search_query.query}")
+        except ImportError:
+            logger.warning("Azure Cognitive Search module not found, falling back to Elasticsearch")
+        except Exception as e:
+            logger.error(f"Error using Azure Cognitive Search: {str(e)}, falling back to Elasticsearch")
+    
+    # Fallback to Elasticsearch if Azure Search failed or is disabled
+    if not search_results["hits"]["hits"] and ENABLE_ELASTICSEARCH:
+        try:
+            from app.utils.elastic import search_carpool_events as es_search_carpool_events
+            search_results = es_search_carpool_events(current_user.id, search_query.query)
+            logger.info(f"Using Elasticsearch for carpool search with query: {search_query.query}")
+        except ImportError:
+            logger.warning("Elasticsearch module not found")
+        except Exception as e:
+            logger.error(f"Error using Elasticsearch: {str(e)}")
     
     # Extract event IDs
     event_ids = [hit["_source"]["id"] for hit in search_results["hits"]["hits"]]

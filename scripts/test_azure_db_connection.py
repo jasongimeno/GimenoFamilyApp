@@ -26,13 +26,14 @@ def test_connection():
         
         print(f"Connecting to PostgreSQL database: {db_host}:{db_port}/{db_name} as {db_user}")
         
-        # Connect to the database
+        # Connect to the database with SSL enabled
         conn = psycopg2.connect(
             dbname=db_name,
             user=db_user,
             password=db_password,
             host=db_host,
-            port=db_port
+            port=db_port,
+            sslmode='require'  # Enable SSL connection required by Azure
         )
         
         # Create a cursor

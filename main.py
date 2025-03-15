@@ -10,8 +10,9 @@ from app.api.carpool import router as carpool_router
 from app.api.meals import router as meals_router
 from app.api.pages import router as pages_router
 from app.db.database import Base, engine
+from app.core.config import ENVIRONMENT, ENABLE_ELASTICSEARCH, ENABLE_SEARCH
 from app.utils.elastic import setup_elasticsearch_indices
-from app.core.config import ENVIRONMENT
+from app.utils.azure_search import setup_azure_search_indices
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -21,9 +22,14 @@ logger = logging.getLogger(__name__)
 logger.info("Creating database tables...")
 Base.metadata.create_all(bind=engine)
 
-# Initialize Elasticsearch indices
-logger.info("Setting up Elasticsearch indices...")
-setup_elasticsearch_indices()
+# Initialize search indices
+if ENABLE_ELASTICSEARCH:
+    logger.info("Setting up Elasticsearch indices (legacy mode)...")
+    setup_elasticsearch_indices()
+
+if ENABLE_SEARCH:
+    logger.info("Setting up Azure Cognitive Search indices...")
+    setup_azure_search_indices()
 
 # Create FastAPI app
 app = FastAPI(
