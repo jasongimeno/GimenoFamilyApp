@@ -16,18 +16,19 @@ raw_ssl_mode = os.getenv("DB_SSL_MODE", "require")
 # Extract just the first word to remove any comments
 DB_SSL_MODE = raw_ssl_mode.strip().split()[0]
 
-# Use a safer approach with explicit connection parameters
-# This avoids issues with special characters in passwords
-# Base connection URL without password
-base_url = f"postgresql://{DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Instead of using the raw DATABASE_URL which can have issues with special characters
+# Create the connection string from individual components which is more reliable
+# Properly escape the password to handle special characters
+if DB_PASSWORD:
+    encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
+    DATABASE_URL = f"postgresql://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+else:
+    DATABASE_URL = f"postgresql://{DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# Create SQLAlchemy engine with explicit connect_args
+# Create SQLAlchemy engine with SSL mode
 engine = create_engine(
-    base_url,
-    connect_args={
-        "password": DB_PASSWORD,
-        "sslmode": DB_SSL_MODE
-    }
+    DATABASE_URL,
+    connect_args={"sslmode": DB_SSL_MODE}
 )
 
 # Create session factory
