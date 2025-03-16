@@ -7,7 +7,7 @@ import urllib.parse
 # Get database connection parameters from environment variables
 DB_NAME = os.getenv("DB_NAME", "fms_prod")
 DB_USER = os.getenv("DB_USER", "jasonadmin")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_PASSWORD = "Thisisfortigraandtaz!"  # Hardcoded for now to ensure it matches exactly
 DB_HOST = os.getenv("DB_HOST", "gimenopgsql.postgres.database.azure.com")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
@@ -16,20 +16,15 @@ raw_ssl_mode = os.getenv("DB_SSL_MODE", "require")
 # Extract just the first word to remove any comments
 DB_SSL_MODE = raw_ssl_mode.strip().split()[0]
 
-# Instead of using the raw DATABASE_URL which can have issues with special characters
-# Create the connection string from individual components which is more reliable
-# Properly escape the password to handle special characters
-if DB_PASSWORD:
-    encoded_password = urllib.parse.quote_plus(DB_PASSWORD)
-    DATABASE_URL = f"postgresql://{DB_USER}:{encoded_password}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-else:
-    DATABASE_URL = f"postgresql://{DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Create a clean connection URL with the verified password
+DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode={DB_SSL_MODE}"
 
-# Create SQLAlchemy engine with SSL mode
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"sslmode": DB_SSL_MODE}
-)
+# Log the connection URL (with password masked) for debugging
+masked_url = DATABASE_URL.replace(DB_PASSWORD, "*****")
+print(f"Connecting to database: {masked_url}")
+
+# Create SQLAlchemy engine
+engine = create_engine(DATABASE_URL)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
