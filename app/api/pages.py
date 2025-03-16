@@ -12,14 +12,22 @@ def get_template_context(request: Request):
     """
     Get the base context for all templates, including filter information
     """
-    # Create a base context with request and filter information
-    context = {
-        "request": request,
-        "filters": templates.env.filters.keys()
-    }
-    
-    logger.debug(f"Template context prepared with filters: {list(templates.env.filters.keys())}")
-    return context
+    try:
+        # Create a base context with request and filter information
+        filters = list(templates.env.filters.keys())
+        logger.debug(f"Template filters available: {filters}")
+        
+        context = {
+            "request": request,
+            "filters": filters
+        }
+        
+        logger.debug(f"Template context prepared with filters: {filters}")
+        return context
+    except Exception as e:
+        # Fallback context with just request - minimal viable context
+        logger.error(f"Error preparing template context: {str(e)}")
+        return {"request": request}
 
 @router.get("/", response_class=HTMLResponse)
 async def home_page(request: Request):
