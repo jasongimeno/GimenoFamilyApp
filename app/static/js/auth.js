@@ -114,8 +114,11 @@ async function apiRequest(url, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
     
+    // Ensure URL is relative or HTTPS (to avoid mixed content)
+    const apiUrl = makeApiUrl(url);
+    
     try {
-        const response = await fetch(url, {
+        const response = await fetch(apiUrl, {
             ...options,
             headers
         });
@@ -131,6 +134,30 @@ async function apiRequest(url, options = {}) {
         console.error('API request error:', error);
         throw error;
     }
+}
+
+/**
+ * Ensure a URL is properly formatted to avoid mixed content issues
+ * @param {string} url - The URL to format
+ * @returns {string} The formatted URL
+ */
+function makeApiUrl(url) {
+    // If the URL already starts with http:// or https://
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        // In production, ensure HTTPS is used
+        if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+            return url.replace('http://', 'https://');
+        }
+        return url;
+    }
+    
+    // For relative URLs, ensure they start with a slash
+    if (!url.startsWith('/')) {
+        url = '/' + url;
+    }
+    
+    // Return the relative URL as is, as it will use the current protocol
+    return url;
 }
 
 // Export utilities for other scripts

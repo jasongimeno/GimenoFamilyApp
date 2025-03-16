@@ -255,20 +255,16 @@ function setupThemeToggle() {
     if (themeToggle) {
         themeToggle.addEventListener('click', function() {
             // Toggle dark class on html element
-            if (document.documentElement.classList.contains('dark')) {
-                // Currently dark, switch to light
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                // Currently light, switch to dark
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
+            document.documentElement.classList.toggle('dark');
+            
+            // Save preference to localStorage
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
         });
     }
 }
 
-// Export utilities for other scripts
+// Export app utilities for other scripts
 window.app = {
     showNotification,
     formatDate
