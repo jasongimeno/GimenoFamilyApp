@@ -8,13 +8,13 @@
     <!-- Google Fonts - Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="{{ 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap' | secure_url }}" rel="stylesheet">
+    <link href="{% if 'secure_url' in filters %}{{ 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap' | secure_url }}{% else %}https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap{% endif %}" rel="stylesheet">
     
     <!-- Tailwind CSS -->
-    <link href="{{ 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css' | secure_url }}" rel="stylesheet">
+    <link href="{% if 'secure_url' in filters %}{{ 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css' | secure_url }}{% else %}https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css{% endif %}" rel="stylesheet">
     
     <!-- Custom CSS -->
-    <link href="{{ '/css/styles.css' | static_url }}" rel="stylesheet">
+    <link href="{% if 'static_url' in filters %}{{ '/css/styles.css' | static_url }}{% else %}{{ url_for('static', path='/css/styles.css') }}{% endif %}" rel="stylesheet">
     
     {% block head %}{% endblock %}
 </head>
@@ -85,18 +85,21 @@
     <div id="notification-container" class="fixed bottom-4 right-4 z-50"></div>
 
     <!-- Core JavaScript -->
-    <script src="{{ '/js/auth.js' | static_url }}"></script>
-    <script src="{{ '/js/app.js' | static_url }}"></script>
+    <script src="{% if 'static_url' in filters %}{{ '/js/auth.js' | static_url }}{% else %}{{ url_for('static', path='/js/auth.js') }}{% endif %}"></script>
+    <script src="{% if 'static_url' in filters %}{{ '/js/app.js' | static_url }}{% else %}{{ url_for('static', path='/js/app.js') }}{% endif %}"></script>
     
     <!-- Mobile menu toggle -->
     <script>
-        document.getElementById('mobile-menu-button').addEventListener('click', function() {
-            const mobileMenu = document.getElementById('mobile-menu');
-            mobileMenu.classList.toggle('hidden');
-        });
-        
-        // Check for saved theme preference or user's OS preference
         document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', function() {
+                    const mobileMenu = document.getElementById('mobile-menu');
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+            
             // Theme toggle functionality will be initialized in app.js
         });
     </script>

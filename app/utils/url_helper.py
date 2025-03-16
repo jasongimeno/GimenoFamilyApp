@@ -84,10 +84,16 @@ def static_url(path: str, request=None) -> str:
         request (Request, optional): The current request object
         
     Returns:
-        str: The absolute URL to the static asset
+        str: The absolute URL to the static asset in production,
+             or a relative URL in development
     """
     # Make sure path doesn't start with a slash for joining
     if path.startswith("/"):
         path = path[1:]
     
+    # In development, use relative URLs for better local testing
+    if settings.ENVIRONMENT != "production":
+        return f"/static/{path}"
+    
+    # In production, use absolute URLs with HTTPS
     return make_absolute_url(f"/static/{path}", request) 

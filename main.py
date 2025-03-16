@@ -4,7 +4,6 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 import uvicorn
 import sys
 
@@ -21,6 +20,9 @@ from app.api.checklists import router as checklists_router
 from app.api.carpool import router as carpool_router
 from app.api.pages import router as pages_router
 from app.api.diagnostics import router as diagnostics_router
+
+# Import centralized templates
+from app.utils.template_helpers import templates
 
 # Configure logging
 logging.basicConfig(
@@ -74,23 +76,7 @@ app.add_middleware(
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Template engine with custom filters for secure URLs
-templates = Jinja2Templates(directory="app/templates")
-
-# Define helper functions for template filters
-def static_url_helper(path):
-    """Helper to generate static URLs in templates"""
-    from app.utils.url_helper import static_url as static_url_func
-    return static_url_func(path)
-
-def ensure_https_url(url):
-    """Helper to ensure URLs are secure"""
-    from app.utils.url_helper import ensure_https_url as ensure_https_url_func
-    return ensure_https_url_func(url)
-
-# Add custom template filters for secure URLs
-templates.env.filters["static_url"] = static_url_helper
-templates.env.filters["secure_url"] = ensure_https_url
+# Template engine setup is now handled in app.utils.template_helpers
 
 # Health check endpoint
 @app.get("/health")

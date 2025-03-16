@@ -41,7 +41,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         
         # Set security headers
         # Content Security Policy to prevent mixed content
-        response.headers["Content-Security-Policy"] = self._get_csp_header()
+        csp_value = self._get_csp_header()
+        logger.debug(f"Setting CSP header: {csp_value}")
+        response.headers["Content-Security-Policy"] = csp_value
         
         # Prevent browsers from interpreting files as a different MIME type
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -61,24 +63,26 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         
         # In production, we want to be more strict
         if settings.ENVIRONMENT == "production":
-            # Allow loading resources only from the same origin and block mixed content
-            return (
-                "default-src 'self';"
-                "script-src 'self' 'unsafe-inline';"  # Allow inline scripts for now
-                "style-src 'self' 'unsafe-inline';"   # Allow inline styles for Tailwind
-                "img-src 'self' data:;"               # Allow data: images
-                "font-src 'self';"
-                "connect-src 'self';"
-                "upgrade-insecure-requests;"          # Upgrade HTTP requests to HTTPS
-                "block-all-mixed-content;"            # Legacy directive for older browsers
-            )
+            # Allow loading resources only from the same origin and trusted external sources
+            directives = [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",  # Allow CDNs
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",  # Allow Google Fonts and CDNs
+                "img-src 'self' data: https:",  # Allow images from any HTTPS source
+                "font-src 'self' https://fonts.gstatic.com",  # Allow Google Font files
+                "connect-src 'self'",
+                "upgrade-insecure-requests",  # Upgrade HTTP requests to HTTPS
+                "block-all-mixed-content"     # Legacy directive for older browsers
+            ]
+            return "; ".join(directives)
         else:
             # In development, we're more permissive
-            return (
-                "default-src 'self';"
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval';"
-                "style-src 'self' 'unsafe-inline';"
-                "img-src 'self' data:;"
-                "font-src 'self';"
-                "connect-src 'self';"
-            ) 
+            directives = [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+                "img-src 'self' data: https:",
+                "font-src 'self' https://fonts.gstatic.com",
+                "connect-src 'self'"
+            ]
+            return "; ".join(directives) 
