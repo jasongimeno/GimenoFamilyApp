@@ -10,6 +10,7 @@ from app.api.checklists import router as checklists_router
 from app.api.carpool import router as carpool_router
 from app.api.meals import router as meals_router
 from app.api.pages import router as pages_router
+from app.api.diagnostics import router as diagnostics_router
 from app.db.database import Base, engine
 from app.core.config import ENVIRONMENT, ENABLE_ELASTICSEARCH, ENABLE_SEARCH
 from app.utils.elastic import setup_elasticsearch_indices
@@ -65,6 +66,7 @@ app.include_router(checklists_router)
 app.include_router(carpool_router)
 app.include_router(meals_router)
 app.include_router(pages_router)
+app.include_router(diagnostics_router)
 
 # Remove the default root endpoint since we have a pages router now
 # @app.get("/")
