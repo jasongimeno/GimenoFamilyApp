@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 import logging
+import os
 
 from app.api.auth import router as auth_router
 from app.api.checklists import router as checklists_router
@@ -73,5 +74,9 @@ app.include_router(pages_router)
 if __name__ == "__main__":
     import uvicorn
     
-    logger.info(f"Starting application in {ENVIRONMENT} environment")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
+    # Get port from environment variable (for Azure App Service compatibility)
+    # Default to 8000 if not set
+    port = int(os.environ.get("PORT", 8000))
+    
+    logger.info(f"Starting application in {ENVIRONMENT} environment on port {port}")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True) 
