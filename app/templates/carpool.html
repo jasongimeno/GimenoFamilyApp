@@ -187,15 +187,126 @@
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Set datetime-local input to today at next hour
-    setDefaultEventTime();
-    
-    // Initialize the page
-    loadEvents();
-    setupEventListeners();
-    initCalendar();
-});
+// Fallback implementations for when scripts don't load properly
+if (!window.auth) {
+    console.log('Creating fallback auth implementation');
+    window.auth = {
+        apiRequest: async function(url, options = {}) {
+            const defaultOptions = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            };
+            
+            const fetchOptions = { ...defaultOptions, ...options };
+            
+            // Add CSRF token if needed for non-GET requests
+            if (fetchOptions.method !== 'GET') {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (csrfToken) {
+                    fetchOptions.headers['X-CSRFToken'] = csrfToken;
+                }
+            }
+            
+            try {
+                // Use relative URL if it starts with /
+                const baseUrl = url.startsWith('/') ? '' : '/';
+                return await fetch(`${baseUrl}${url}`, fetchOptions);
+            } catch (error) {
+                console.error('API request error:', error);
+                throw error;
+            }
+        }
+    };
+}
+
+if (!window.app) {
+    console.log('Creating fallback app implementation');
+    window.app = {
+        showNotification: function(message, type = 'info') {
+            console.log(`Notification (${type}):`, message);
+            
+            const notificationContainer = document.getElementById('notification-container');
+            if (!notificationContainer) {
+                // Create notification container if it doesn't exist
+                const container = document.createElement('div');
+                container.id = 'notification-container';
+                container.style.position = 'fixed';
+                container.style.top = '20px';
+                container.style.right = '20px';
+                container.style.zIndex = '1000';
+                document.body.appendChild(container);
+            }
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.style.padding = '10px 15px';
+            notification.style.marginBottom = '10px';
+            notification.style.borderRadius = '5px';
+            notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+            notification.style.transition = 'all 0.3s ease';
+            
+            // Set background color based on notification type
+            switch (type) {
+                case 'success':
+                    notification.style.backgroundColor = '#4CAF50';
+                    notification.style.color = 'white';
+                    break;
+                case 'error':
+                    notification.style.backgroundColor = '#F44336';
+                    notification.style.color = 'white';
+                    break;
+                case 'warning':
+                    notification.style.backgroundColor = '#FF9800';
+                    notification.style.color = 'white';
+                    break;
+                default:
+                    notification.style.backgroundColor = '#2196F3';
+                    notification.style.color = 'white';
+            }
+            
+            notification.textContent = message;
+            
+            // Add notification to container
+            const container = document.getElementById('notification-container');
+            container.appendChild(notification);
+            
+            // Remove notification after 5 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    if (container.contains(notification)) {
+                        container.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+    };
+}
+
+// Delay initialization to ensure scripts are loaded
+setTimeout(function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set datetime-local input to today at next hour
+        setDefaultEventTime();
+        
+        // Initialize the page
+        loadEvents();
+        setupEventListeners();
+        initCalendar();
+    });
+
+    // If DOM is already loaded, run initialization
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setDefaultEventTime();
+        loadEvents();
+        setupEventListeners();
+        initCalendar();
+    }
+}, 300); // Small delay to allow scripts to load
 
 function setDefaultEventTime() {
     const now = new Date();

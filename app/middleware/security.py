@@ -83,7 +83,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",  # Allow Google Fonts and CDNs
                 "img-src 'self' data: https:",  # Allow images from any HTTPS source
                 "font-src 'self' https://fonts.gstatic.com",  # Allow Google Font files
-                "connect-src 'self'",
+                "connect-src 'self' https://*.azure-api.net https://*.azurewebsites.net",  # Allow connections to Azure services
                 "upgrade-insecure-requests",  # Upgrade HTTP requests to HTTPS
                 "block-all-mixed-content"     # Legacy directive for older browsers
             ]
@@ -96,6 +96,6 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 "style-src 'self' 'unsafe-inline' http: https:",  # Allow any HTTP/HTTPS styles
                 "img-src 'self' data: http: https:",  # Allow any HTTP/HTTPS images
                 "font-src 'self' http: https:",  # Allow any HTTP/HTTPS fonts
-                "connect-src 'self'"  # No trailing comma on the last item
+                "connect-src 'self' http: https:"  # Allow connections to any origin for API calls
             ]
             return "; ".join(directives) 

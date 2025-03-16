@@ -214,6 +214,89 @@
 
 {% block scripts %}
 <script>
+    // Fallback implementation of auth API in case the main script fails to load
+    // This ensures the checklist functionality works even if auth.js has loading issues
+    if (!window.auth) {
+        console.warn('Auth API not detected, using fallback implementation');
+        window.auth = {
+            getAuthHeaders: function() {
+                const token = localStorage.getItem('accessToken');
+                return {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                };
+            },
+            apiRequest: async function(url, options = {}) {
+                const token = localStorage.getItem('accessToken');
+                
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                // Set default headers
+                const headers = options.headers || {};
+                headers['Authorization'] = `Bearer ${token}`;
+                headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+                
+                // Make the URL relative to avoid protocol issues
+                if (url.startsWith('http')) {
+                    console.warn('Using absolute URL in API request, converting to relative');
+                    try {
+                        const urlObj = new URL(url);
+                        url = urlObj.pathname + urlObj.search;
+                    } catch (e) {
+                        console.error('Failed to parse URL', e);
+                    }
+                }
+                
+                if (!url.startsWith('/')) {
+                    url = '/' + url;
+                }
+                
+                try {
+                    console.log('Making API request to:', url);
+                    const response = await fetch(url, {
+                        ...options,
+                        headers
+                    });
+                    
+                    if (response.status === 401) {
+                        // Unauthorized, token might be invalid
+                        localStorage.removeItem('accessToken');
+                        localStorage.removeItem('userEmail');
+                        window.location.href = '/login';
+                        return;
+                    }
+                    
+                    return response;
+                } catch (error) {
+                    console.error('API request error:', error);
+                    throw error;
+                }
+            },
+            logout: function() {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('userEmail');
+                window.location.href = '/login';
+            }
+        };
+    }
+
+    // Similarly for app utility if not available
+    if (!window.app) {
+        console.warn('App API not detected, using fallback implementation');
+        window.app = {
+            showNotification: function(message, type = 'info') {
+                console.log(`${type.toUpperCase()}: ${message}`);
+                alert(message);
+            },
+            formatDate: function(date) {
+                return new Date(date).toLocaleDateString();
+            }
+        };
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Check if user is logged in
         const token = localStorage.getItem('accessToken');
@@ -242,15 +325,15 @@
         addItemButton.addEventListener('click', addItemField);
         checklistForm.addEventListener('submit', saveChecklist);
 
-        // Initial load
-        fetchChecklists();
+        // Initial load - but with a slight delay to ensure scripts are loaded
+        setTimeout(fetchChecklists, 100);
 
         // Functions
         async function fetchChecklists() {
             showLoading(true);
             
             try {
-                // Check if auth object and apiRequest function exist
+                // Double check auth is available even after timeout
                 if (!window.auth || typeof window.auth.apiRequest !== 'function') {
                     throw new Error('Authentication API not available. Try refreshing the page.');
                 }
