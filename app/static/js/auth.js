@@ -144,8 +144,11 @@ async function apiRequest(url, options = {}) {
 function makeApiUrl(url) {
     // If the URL already starts with http:// or https://
     if (url.startsWith('http://') || url.startsWith('https://')) {
-        // In production, ensure HTTPS is used
-        if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+        // Only force HTTPS if not localhost
+        if (window.location.protocol === 'https:' && 
+            url.startsWith('http://') && 
+            !url.includes('localhost') && 
+            !url.includes('127.0.0.1')) {
             return url.replace('http://', 'https://');
         }
         return url;

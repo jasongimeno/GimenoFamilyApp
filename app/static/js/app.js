@@ -134,43 +134,60 @@ function setupConfirmations() {
  * @param {number} duration - Duration in milliseconds
  */
 function showNotification(message, type = 'info', duration = 5000) {
-    // Create notification element
-    const notification = document.createElement('div');
-    let bgColor = 'bg-blue-500';
-    
-    switch (type) {
-        case 'success':
-            bgColor = 'bg-green-500';
-            break;
-        case 'error':
-            bgColor = 'bg-red-500';
-            break;
-        case 'warning':
-            bgColor = 'bg-yellow-500';
-            break;
-    }
-    
-    notification.className = `${bgColor} text-white py-2 px-4 rounded shadow-lg fixed top-4 right-4 z-50 flex items-center`;
-    notification.innerHTML = `
-        <span>${message}</span>
-        <button class="ml-4 focus:outline-none">×</button>
-    `;
-    
-    // Add to DOM
-    document.body.appendChild(notification);
-    
-    // Set up close button
-    const closeButton = notification.querySelector('button');
-    closeButton.addEventListener('click', function() {
-        notification.remove();
-    });
-    
-    // Auto-close after duration
-    setTimeout(() => {
-        if (document.body.contains(notification)) {
-            notification.remove();
+    try {
+        // First try to use the notification container if it exists
+        const container = document.getElementById('notification-container');
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        let bgColor = 'bg-blue-500';
+        
+        switch (type) {
+            case 'success':
+                bgColor = 'bg-green-500';
+                break;
+            case 'error':
+                bgColor = 'bg-red-500';
+                break;
+            case 'warning':
+                bgColor = 'bg-yellow-500';
+                break;
         }
-    }, duration);
+        
+        notification.className = `${bgColor} text-white py-2 px-4 rounded shadow-lg flex items-center`;
+        notification.innerHTML = `
+            <span>${message}</span>
+            <button class="ml-4 focus:outline-none">×</button>
+        `;
+        
+        // Add to DOM - either to the container or directly to the body
+        if (container) {
+            notification.className += ' mb-2'; // Add margin between stacked notifications
+            container.appendChild(notification);
+        } else {
+            notification.className += ' fixed top-4 right-4 z-50'; // Position for body
+            document.body.appendChild(notification);
+        }
+        
+        // Set up close button
+        const closeButton = notification.querySelector('button');
+        if (closeButton) {
+            closeButton.addEventListener('click', function() {
+                notification.remove();
+            });
+        }
+        
+        // Auto-close after duration
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                notification.remove();
+            }
+        }, duration);
+    } catch (error) {
+        // Fallback to console if DOM manipulation fails
+        console.error(`${type.toUpperCase()}: ${message}`);
+        console.error('Error showing notification:', error);
+    }
 }
 
 /**
@@ -264,8 +281,7 @@ function setupThemeToggle() {
     }
 }
 
-// Export app utilities for other scripts
-window.app = {
-    showNotification,
-    formatDate
-}; 
+// Export utilities for other scripts
+window.app = window.app || {};
+window.app.showNotification = showNotification;
+window.app.formatDate = formatDate; 

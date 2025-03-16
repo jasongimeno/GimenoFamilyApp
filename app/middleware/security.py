@@ -92,10 +92,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             # In development, we're more permissive
             directives = [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
-                "img-src 'self' data: https:",
-                "font-src 'self' https://fonts.gstatic.com",
-                "connect-src 'self'"
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' http: https:",  # Allow any HTTP/HTTPS scripts
+                "style-src 'self' 'unsafe-inline' http: https:",  # Allow any HTTP/HTTPS styles
+                "img-src 'self' data: http: https:",  # Allow any HTTP/HTTPS images
+                "font-src 'self' http: https:",  # Allow any HTTP/HTTPS fonts
+                "connect-src 'self'"  # No trailing comma on the last item
             ]
             return "; ".join(directives) 

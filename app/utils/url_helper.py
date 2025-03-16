@@ -91,9 +91,19 @@ def static_url(path: str, request=None) -> str:
     if path.startswith("/"):
         path = path[1:]
     
-    # In development, use relative URLs for better local testing
+    # In development, ALWAYS use relative URLs for better local testing
+    # This prevents protocol mismatches (https://localhost vs http://localhost)
     if settings.ENVIRONMENT != "production":
         return f"/static/{path}"
     
     # In production, use absolute URLs with HTTPS
-    return make_absolute_url(f"/static/{path}", request) 
+    # Get hostname from request or settings
+    host = request.headers.get('host') if request else settings.APP_HOST
+    
+    # Only use HTTPS if not localhost - avoid https://localhost which can cause issues
+    if 'localhost' in host or '127.0.0.1' in host:
+        protocol = "http"
+    else:
+        protocol = "https"
+        
+    return f"{protocol}://{host}/static/{path}" 

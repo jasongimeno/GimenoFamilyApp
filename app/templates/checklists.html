@@ -250,6 +250,11 @@
             showLoading(true);
             
             try {
+                // Check if auth object and apiRequest function exist
+                if (!window.auth || typeof window.auth.apiRequest !== 'function') {
+                    throw new Error('Authentication API not available. Try refreshing the page.');
+                }
+                
                 const response = await window.auth.apiRequest('/checklists/');
                 if (response.ok) {
                     const checklists = await response.json();
@@ -260,7 +265,11 @@
                 }
             } catch (error) {
                 console.error('Error fetching checklists:', error);
-                window.app.showNotification('Failed to load checklists', 'error');
+                if (window.app && typeof window.app.showNotification === 'function') {
+                    window.app.showNotification('Failed to load checklists: ' + error.message, 'error');
+                } else {
+                    alert('Failed to load checklists: ' + error.message);
+                }
             } finally {
                 showLoading(false);
             }
