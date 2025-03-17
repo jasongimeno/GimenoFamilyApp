@@ -185,7 +185,7 @@ if (!window.auth) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'same-origin'
+                credentials: 'include' // Change from 'same-origin' to 'include' for cross-site cookie support
             };
             
             const fetchOptions = { ...defaultOptions, ...options };
@@ -199,12 +199,47 @@ if (!window.auth) {
             }
             
             try {
-                // Use relative URL if it starts with /
-                const baseUrl = url.startsWith('/') ? '' : '/';
-                return await fetch(`${baseUrl}${url}`, fetchOptions);
+                // Use full URL if we're in a different domain
+                let requestUrl = url;
+                if (url.startsWith('/')) {
+                    // Check if we're in Azure or local environment
+                    const isAzure = window.location.hostname.includes('azure');
+                    if (!isAzure) {
+                        // Local environment
+                        requestUrl = url;
+                    } else {
+                        // Azure environment - use the full URL
+                        const baseUrl = window.location.origin;
+                        requestUrl = `${baseUrl}${url}`;
+                    }
+                }
+                
+                console.log(`Making API request to: ${requestUrl}`);
+                const response = await fetch(requestUrl, fetchOptions);
+                
+                // Check for authentication errors
+                if (response.status === 401) {
+                    console.warn('Authentication required. Redirecting to login page...');
+                    // Store the current page URL to redirect back after login
+                    localStorage.setItem('redirectAfterLogin', window.location.pathname);
+                    window.location.href = '/login';
+                    return { 
+                        ok: false,
+                        status: 401,
+                        json: async () => ({ detail: 'Authentication required' }) 
+                    };
+                }
+                
+                return response;
             } catch (error) {
                 console.error('API request error:', error);
-                throw error;
+                // Return a fake response object for easier error handling
+                return { 
+                    ok: false, 
+                    status: 0,
+                    statusText: error.message,
+                    json: async () => ({ detail: `Network error: ${error.message}` }) 
+                };
             }
         }
     };
@@ -380,32 +415,53 @@ async function loadMeals() {
         document.getElementById('no-meals-message').classList.add('hidden');
         document.getElementById('meals-container').innerHTML = '<div id="loading-meals" class="col-span-full text-center py-8"><p class="text-gray-500">Loading meals...</p></div>';
         
+        console.log('Fetching meals...');
         const response = await window.auth.apiRequest('/meals/');
-        const meals = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Meals response:', data);
+        
+        // Ensure we have an array of meals, even if the API returns something unexpected
+        const meals = Array.isArray(data) ? data : [];
         
         // Debug log for March 17 meal
         console.log('All meals loaded:', meals);
-        const march17Meals = meals.filter(meal => {
-            const mealDate = normalizeDate(meal.planned_date);
-            return mealDate.getUTCMonth() === 2 && mealDate.getUTCDate() === 17; // March is month 2 (0-indexed)
-        });
-        console.log('March 17 meals found in API response:', march17Meals);
-        
-        if (march17Meals.length > 0) {
-            console.log('March 17 meal details:');
-            march17Meals.forEach(meal => {
-                const originalDate = new Date(meal.planned_date);
-                const normalizedDate = normalizeDate(meal.planned_date);
-                
-                console.log(`
-                    Meal ID: ${meal.id}
-                    Name: ${meal.name}
-                    Original date string: ${meal.planned_date}
-                    Parsed date: ${originalDate.toISOString()}
-                    Normalized date: ${normalizedDate.toISOString()}
-                    Normalized date string: ${getDateString(meal.planned_date)}
-                `);
+        if (Array.isArray(meals)) {
+            const march17Meals = meals.filter(meal => {
+                try {
+                    const mealDate = normalizeDate(meal.planned_date);
+                    return mealDate.getUTCMonth() === 2 && mealDate.getUTCDate() === 17; // March is month 2 (0-indexed)
+                } catch (e) {
+                    console.error('Error filtering meal:', e);
+                    return false;
+                }
             });
+            console.log('March 17 meals found in API response:', march17Meals);
+            
+            if (march17Meals.length > 0) {
+                console.log('March 17 meal details:');
+                march17Meals.forEach(meal => {
+                    try {
+                        const originalDate = new Date(meal.planned_date);
+                        const normalizedDate = normalizeDate(meal.planned_date);
+                        
+                        console.log(`
+                            Meal ID: ${meal.id}
+                            Name: ${meal.name}
+                            Original date string: ${meal.planned_date}
+                            Parsed date: ${originalDate.toISOString()}
+                            Normalized date: ${normalizedDate.toISOString()}
+                            Normalized date string: ${getDateString(meal.planned_date)}
+                        `);
+                    } catch (e) {
+                        console.error('Error logging meal details:', e);
+                    }
+                });
+            }
         }
         
         document.getElementById('loading-meals').classList.add('hidden');
@@ -413,7 +469,7 @@ async function loadMeals() {
         // Always store the meals in the global variable, even if empty
         window.currentMeals = meals;
         
-        if (meals.length === 0) {
+        if (!meals || meals.length === 0) {
             document.getElementById('no-meals-message').classList.remove('hidden');
             // Make sure the weekly view is updated even for no meals
             displayWeek(currentWeekOffset);

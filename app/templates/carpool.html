@@ -197,7 +197,7 @@ if (!window.auth) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'same-origin'
+                credentials: 'include' // Change from 'same-origin' to 'include' for cross-site cookie support
             };
             
             const fetchOptions = { ...defaultOptions, ...options };
@@ -211,12 +211,47 @@ if (!window.auth) {
             }
             
             try {
-                // Use relative URL if it starts with /
-                const baseUrl = url.startsWith('/') ? '' : '/';
-                return await fetch(`${baseUrl}${url}`, fetchOptions);
+                // Use full URL if we're in a different domain
+                let requestUrl = url;
+                if (url.startsWith('/')) {
+                    // Check if we're in Azure or local environment
+                    const isAzure = window.location.hostname.includes('azure');
+                    if (!isAzure) {
+                        // Local environment
+                        requestUrl = url;
+                    } else {
+                        // Azure environment - use the full URL
+                        const baseUrl = window.location.origin;
+                        requestUrl = `${baseUrl}${url}`;
+                    }
+                }
+                
+                console.log(`Making API request to: ${requestUrl}`);
+                const response = await fetch(requestUrl, fetchOptions);
+                
+                // Check for authentication errors
+                if (response.status === 401) {
+                    console.warn('Authentication required. Redirecting to login page...');
+                    // Store the current page URL to redirect back after login
+                    localStorage.setItem('redirectAfterLogin', window.location.pathname);
+                    window.location.href = '/login';
+                    return { 
+                        ok: false,
+                        status: 401,
+                        json: async () => ({ detail: 'Authentication required' }) 
+                    };
+                }
+                
+                return response;
             } catch (error) {
                 console.error('API request error:', error);
-                throw error;
+                // Return a fake response object for easier error handling
+                return { 
+                    ok: false, 
+                    status: 0,
+                    statusText: error.message,
+                    json: async () => ({ detail: `Network error: ${error.message}` }) 
+                };
             }
         }
     };
@@ -484,8 +519,18 @@ async function loadEvents() {
         document.getElementById('no-events-message').classList.add('hidden');
         document.getElementById('events-container').classList.add('hidden');
         
+        console.log('Fetching carpool events...');
         const response = await window.auth.apiRequest('/carpool/events');
-        const events = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Events response:', data);
+        
+        // Ensure we have an array of events, even if the API returns something unexpected
+        const events = Array.isArray(data) ? data : [];
         
         document.getElementById('loading-events').classList.add('hidden');
         
@@ -505,6 +550,9 @@ async function loadEvents() {
         }
     } catch (error) {
         console.error('Error loading events:', error);
+        document.getElementById('loading-events').classList.add('hidden');
+        document.getElementById('no-events-message').classList.remove('hidden');
+        document.getElementById('no-events-message').innerHTML = `<p class="text-red-500">Error loading events: ${error.message}</p>`;
         app.showNotification('Failed to load carpool events. Please try again later.', 'error');
     }
 }
@@ -514,8 +562,20 @@ function renderEvents(events) {
     eventsContainer.innerHTML = '';
     eventsContainer.classList.remove('hidden');
     
+    // Check if events is an array before trying to sort
+    if (!Array.isArray(events)) {
+        console.error('Expected events to be an array but got:', events);
+        eventsContainer.innerHTML = '<p class="text-red-500">Error: Invalid events data received</p>';
+        return;
+    }
+    
     // Sort events by drop-off time
-    events.sort((a, b) => new Date(a.drop_off_time) - new Date(b.drop_off_time));
+    try {
+        events.sort((a, b) => new Date(a.drop_off_time) - new Date(b.drop_off_time));
+    } catch (error) {
+        console.error('Error sorting events:', error);
+        // Continue without sorting if there's an error
+    }
     
     events.forEach(event => {
         const card = document.createElement('div');
