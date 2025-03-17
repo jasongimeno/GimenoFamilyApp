@@ -79,11 +79,16 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             # Allow loading resources only from the same origin and trusted external sources
             directives = [
                 "default-src 'self'",
-                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",  # Allow CDNs
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",  # Allow Google Fonts and CDNs
-                "img-src 'self' data: https:",  # Allow images from any HTTPS source
-                "font-src 'self' https://fonts.gstatic.com",  # Allow Google Font files
-                "connect-src 'self' https://*.azure-api.net https://*.azurewebsites.net",  # Allow connections to Azure services
+                # Allow scripts from self, inline, CDNs, and localhost (for local development viewing)
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net http://localhost:8000",
+                # Allow styles from self, inline, CDNs, Google Fonts, and localhost
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net http://localhost:8000",
+                # Allow images from any HTTPS source and localhost
+                "img-src 'self' data: https: http://localhost:8000",
+                # Allow fonts from Google and localhost
+                "font-src 'self' https://fonts.gstatic.com http://localhost:8000",
+                # Allow connections to self, Azure services, and localhost
+                "connect-src 'self' https://*.azure-api.net https://*.azurewebsites.net http://localhost:8000",
                 "upgrade-insecure-requests",  # Upgrade HTTP requests to HTTPS
                 "block-all-mixed-content"     # Legacy directive for older browsers
             ]
