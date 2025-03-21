@@ -439,7 +439,8 @@ function setupEventListeners() {
 const calendarState = {
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
-    events: []
+    events: [], // All events including past events (for calendar)
+    futureEvents: [] // Only future events (for list view)
 };
 
 function initCalendar() {
@@ -532,19 +533,30 @@ async function loadEvents() {
         // Ensure we have an array of events, even if the API returns something unexpected
         const events = Array.isArray(data) ? data : [];
         
+        // Filter out events that occur before today for list view
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of today
+        
+        const futureEvents = events.filter(event => {
+            const eventDate = new Date(event.drop_off_time);
+            return eventDate >= today;
+        });
+        
         document.getElementById('loading-events').classList.add('hidden');
         
-        if (events.length === 0) {
+        // Store both all events and future events
+        calendarState.events = events; // All events for calendar
+        calendarState.futureEvents = futureEvents; // Future events for list view
+        
+        if (futureEvents.length === 0) {
             document.getElementById('no-events-message').classList.remove('hidden');
             return;
         }
         
-        // Store events for calendar
-        calendarState.events = events;
+        // Render events in list view (only future events)
+        renderEvents(futureEvents);
         
-        // Render events in list view
-        renderEvents(events);
-        // Render calendar if in calendar view
+        // Render calendar if in calendar view (with all events)
         if (!document.getElementById('calendar-view').classList.contains('hidden')) {
             renderCalendar();
         }
@@ -722,7 +734,20 @@ async function searchEvents(query) {
         
         document.getElementById('loading-events').classList.add('hidden');
         
-        if (events.length === 0) {
+        // Filter out events that occur before today for list view
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of today
+        
+        const futureEvents = events.filter(event => {
+            const eventDate = new Date(event.drop_off_time);
+            return eventDate >= today;
+        });
+        
+        // Update both event collections
+        calendarState.events = events; // All events for calendar
+        calendarState.futureEvents = futureEvents; // Future events for list view
+        
+        if (futureEvents.length === 0) {
             document.getElementById('events-container').classList.add('hidden');
             document.getElementById('no-events-message').classList.remove('hidden');
             document.getElementById('no-events-message').querySelector('p').textContent = 
@@ -731,7 +756,14 @@ async function searchEvents(query) {
         }
         
         document.getElementById('no-events-message').classList.add('hidden');
-        renderEvents(events);
+        
+        // Render in list view (only future events)
+        renderEvents(futureEvents);
+        
+        // Update calendar if in calendar view
+        if (!document.getElementById('calendar-view').classList.contains('hidden')) {
+            renderCalendar();
+        }
     } catch (error) {
         console.error('Error searching events:', error);
         app.showNotification('Failed to search carpool events. Please try again later.', 'error');
