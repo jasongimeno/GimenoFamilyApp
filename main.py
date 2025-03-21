@@ -101,6 +101,13 @@ async def global_exception_handler(request, exc):
         content={"message": "An internal server error occurred", "detail": str(exc)}
     )
 
+# Set up Azure Search indices if enabled
+if settings.ENABLE_SEARCH:
+    from app.utils.azure_search import setup_azure_search_indices
+    logger.info("Setting up Azure Search indices...")
+    setup_azure_search_indices()
+    logger.info("Azure Search indices setup complete")
+
 if __name__ == "__main__":
     # Get port from environment variable or use default
     port = int(os.getenv("PORT", 8000))

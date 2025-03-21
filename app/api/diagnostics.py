@@ -12,6 +12,8 @@ import time
 import traceback
 
 from app.db.database import get_db, engine
+from app.utils.auth import get_current_user
+from app.core.config import settings
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -307,3 +309,19 @@ async def get_request_info(request: Request):
     }
     
     return response 
+
+@router.get("/system-info")
+async def get_system_info(current_user = Depends(get_current_user)):
+    """Get general system information"""
+    return {
+        "environment": settings.ENVIRONMENT,
+        "app_version": settings.APP_VERSION,
+        "search_enabled": settings.ENABLE_SEARCH
+    }
+
+@router.get("/search-status")
+async def get_search_status(current_user = Depends(get_current_user)):
+    """Get detailed information about the search service status"""
+    from app.utils.azure_search import get_search_diagnostic_info
+    
+    return get_search_diagnostic_info() 

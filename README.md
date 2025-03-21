@@ -15,7 +15,7 @@ Family Management Solution (FMS) is a full-stack web application that provides t
 - **Backend**: FastAPI (Python)
 - **Frontend**: HTML, JavaScript, CSS (with Tailwind CSS)
 - **Database**: PostgreSQL
-- **Search**: Elasticsearch
+- **Search**: Azure Cognitive Search
 - **Authentication**: JWT-based authentication
 
 ## Getting Started
@@ -24,7 +24,7 @@ Family Management Solution (FMS) is a full-stack web application that provides t
 
 - Python 3.8+
 - PostgreSQL
-- Elasticsearch (local or hosted on elastic.co)
+- Azure Cognitive Search (Azure account required)
 
 ### Installation
 
@@ -45,8 +45,9 @@ pip install -r requirements.txt
 ```
 ENVIRONMENT=dev
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/fms_dev
-ELASTICSEARCH_HOST=http://localhost:9200
-ELASTICSEARCH_API_KEY=
+ENABLE_SEARCH=true
+SEARCH_SERVICE_NAME=your-azure-search-service-name
+SEARCH_API_KEY=your-azure-search-api-key
 SECRET_KEY=your_secret_key
 EMAIL_SENDER=noreply@familymanagement.app
 SENDGRID_API_KEY=
@@ -94,9 +95,9 @@ The application supports three environments:
 
 Database tables are created automatically when running the application for the first time.
 
-### Elasticsearch Setup
+### Azure Search Setup
 
-Elasticsearch indices are created automatically when running the application.
+Azure Search indices are created automatically when running the application. You'll need a valid Azure Cognitive Search service name and API key in your environment variables.
 
 ## License
 

@@ -19,16 +19,14 @@ APP_HOST = os.getenv("APP_HOST", "localhost:8000")  # For production, set to you
 # Common setting to enable/disable search functionality
 ENABLE_SEARCH = os.getenv("ENABLE_SEARCH", "true").lower() == "true"
 
-# Elasticsearch (legacy) settings
-ENABLE_ELASTICSEARCH = os.getenv("ENABLE_ELASTICSEARCH", "false").lower() == "true"
-ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST", "http://localhost:9200")
-ELASTICSEARCH_API_KEY = os.getenv("ELASTICSEARCH_API_KEY", "")
-ELASTICSEARCH_INDEX_PREFIX = f"fms-{ENVIRONMENT}"
-
 # Azure Cognitive Search settings
 SEARCH_SERVICE_NAME = os.getenv("SEARCH_SERVICE_NAME", "")
 SEARCH_API_KEY = os.getenv("SEARCH_API_KEY", "")
-SEARCH_INDEX_PREFIX = f"fms-{ENVIRONMENT}"
+# Use fms-dev instead of fms-development for development environment
+if ENVIRONMENT == "development":
+    SEARCH_INDEX_PREFIX = "fms-dev"
+else:
+    SEARCH_INDEX_PREFIX = f"fms-{ENVIRONMENT}"
 
 # JWT Authentication
 SECRET_KEY = os.getenv("SECRET_KEY", "development_secret_key")
@@ -49,10 +47,6 @@ class Settings:
     DATABASE_URL = DATABASE_URL
     APP_HOST = APP_HOST
     ENABLE_SEARCH = ENABLE_SEARCH
-    ENABLE_ELASTICSEARCH = ENABLE_ELASTICSEARCH
-    ELASTICSEARCH_HOST = ELASTICSEARCH_HOST
-    ELASTICSEARCH_API_KEY = ELASTICSEARCH_API_KEY
-    ELASTICSEARCH_INDEX_PREFIX = ELASTICSEARCH_INDEX_PREFIX
     SEARCH_SERVICE_NAME = SEARCH_SERVICE_NAME
     SEARCH_API_KEY = SEARCH_API_KEY
     SEARCH_INDEX_PREFIX = SEARCH_INDEX_PREFIX

@@ -13,10 +13,8 @@ from app.schemas.checklist import (
     CompleteChecklistRunRequest
 )
 from app.utils.auth import get_current_user
-from app.utils.elastic import index_checklist, delete_document, CHECKLIST_INDEX
 from app.utils.email import send_checklist_report, generate_checklist_report_html
-from app.core.config import ENABLE_ELASTICSEARCH, ENABLE_SEARCH
-from app.utils.azure_search import search_checklists as azure_search_checklists
+from app.core.config import ENABLE_SEARCH
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -59,15 +57,17 @@ def create_checklist(
     for item in db_items:
         db.refresh(item)
     
-    # Index in Elasticsearch - but don't block if it fails
+    # Index in search service - but don't block if it fails
     try:
-        index_success = index_checklist(db_checklist, db_items)
-        if not index_success:
-            # Log the failure, but don't halt the process
-            print(f"Warning: Failed to index checklist ID {db_checklist.id} in Elasticsearch, but checklist was created in database")
+        if ENABLE_SEARCH:
+            from app.utils.azure_search import index_checklist
+            index_success = index_checklist(db_checklist, db_items)
+            if not index_success:
+                # Log the failure, but don't halt the process
+                logger.warning(f"Failed to index checklist ID {db_checklist.id} in Azure Search, but checklist was created in database")
     except Exception as e:
         # If indexing fails, just log the error
-        print(f"Warning: Error occurred during checklist indexing: {str(e)}")
+        logger.warning(f"Error occurred during checklist indexing: {str(e)}")
     
     # Prepare response
     response = ChecklistResponse(
@@ -170,13 +170,7 @@ def update_checklist(
             detail="Checklist not found"
         )
     
-    # Log the update request
-    print(f"Updating checklist {checklist_id} with {len(checklist_data.items)} items")
-    print(f"Request data: Title = '{checklist_data.title}', Category = '{checklist_data.category}'")
-    for i, item in enumerate(checklist_data.items):
-        print(f"  Item {i+1}: '{item.text}' (Required: {item.is_required})")
-    
-    # Update checklist
+    # Update checklist properties
     checklist.title = checklist_data.title
     checklist.category = checklist_data.category
     
@@ -184,11 +178,9 @@ def update_checklist(
     existing_items = db.query(ChecklistItem).filter(ChecklistItem.checklist_id == checklist.id).all()
     existing_item_map = {item.id: item for item in existing_items}
     
-    print(f"Checklist has {len(existing_items)} existing items")
-    
-    # Process items - we'll track which existing items to keep
-    db_items = []
+    # Track which items to keep
     items_to_keep_ids = set()
+    db_items = []
     
     # Create new items or update existing ones
     for i, item_data in enumerate(checklist_data.items):
@@ -229,15 +221,17 @@ def update_checklist(
     
     print(f"Update complete, checklist now has {len(db_items)} items")
     
-    # Update in Elasticsearch - but don't block if it fails
+    # Update in search service - but don't block if it fails
     try:
-        index_success = index_checklist(checklist, db_items)
-        if not index_success:
-            # Log the failure, but don't halt the process
-            print(f"Warning: Failed to index checklist ID {checklist.id} in Elasticsearch during update, but checklist was updated in database")
+        if ENABLE_SEARCH:
+            from app.utils.azure_search import index_checklist
+            index_success = index_checklist(checklist, db_items)
+            if not index_success:
+                # Log the failure, but don't halt the process
+                logger.warning(f"Failed to index checklist ID {checklist.id} in Azure Search during update, but checklist was updated in database")
     except Exception as e:
         # If indexing fails, just log the error
-        print(f"Warning: Error occurred during checklist indexing on update: {str(e)}")
+        logger.warning(f"Error occurred during checklist indexing on update: {str(e)}")
     
     # Prepare response
     response = ChecklistResponse(
@@ -275,8 +269,14 @@ def delete_checklist(
     db.delete(checklist)
     db.commit()
     
-    # Delete from Elasticsearch
-    delete_document(CHECKLIST_INDEX, checklist_id)
+    # Delete from search service - but don't block if it fails
+    try:
+        if ENABLE_SEARCH:
+            from app.utils.azure_search import delete_document, CHECKLIST_INDEX
+            delete_document(CHECKLIST_INDEX, checklist_id)
+    except Exception as e:
+        # If deletion from search service fails, just log the error
+        logger.warning(f"Error occurred during checklist deletion from search service: {str(e)}")
     
     return None
 
@@ -581,27 +581,16 @@ def search(
 ):
     search_results = {"hits": {"hits": []}}
     
-    # Try Azure Cognitive Search first if enabled
+    # Use Azure Cognitive Search if enabled
     if ENABLE_SEARCH:
         try:
-            from app.utils.azure_search import search_checklists as azure_search_checklists
-            search_results = azure_search_checklists(current_user.id, q)
+            from app.utils.azure_search import search_checklists
+            search_results = search_checklists(current_user.id, q)
             logger.info(f"Using Azure Cognitive Search for checklist search with query: {q}")
         except ImportError:
-            logger.warning("Azure Cognitive Search module not found, falling back to Elasticsearch")
+            logger.warning("Azure Cognitive Search module not found")
         except Exception as e:
-            logger.error(f"Error using Azure Cognitive Search: {str(e)}, falling back to Elasticsearch")
-    
-    # Fallback to Elasticsearch if Azure Search failed or is disabled
-    if not search_results["hits"]["hits"] and ENABLE_ELASTICSEARCH:
-        try:
-            from app.utils.elastic import search_checklists as es_search_checklists
-            search_results = es_search_checklists(current_user.id, q)
-            logger.info(f"Using Elasticsearch for checklist search with query: {q}")
-        except ImportError:
-            logger.warning("Elasticsearch module not found")
-        except Exception as e:
-            logger.error(f"Error using Elasticsearch: {str(e)}")
+            logger.error(f"Error using Azure Cognitive Search: {str(e)}")
     
     # Extract checklist IDs
     checklist_ids = [hit["_source"]["id"] for hit in search_results["hits"]["hits"]]
@@ -612,21 +601,19 @@ def search(
         checklist = db.query(Checklist).filter(Checklist.id == checklist_id).first()
         if checklist:
             items = db.query(ChecklistItem).filter(ChecklistItem.checklist_id == checklist.id).all()
-            result.append(
-                ChecklistResponse(
-                    id=checklist.id,
-                    user_id=checklist.user_id,
-                    title=checklist.title,
-                    category=checklist.category,
-                    created_at=checklist.created_at,
-                    items=[{
-                        "id": item.id,
-                        "checklist_id": item.checklist_id,
-                        "text": item.text,
-                        "is_required": item.is_required
-                    } for item in items]
-                )
-            )
+            result.append(ChecklistResponse(
+                id=checklist.id,
+                user_id=checklist.user_id,
+                title=checklist.title,
+                category=checklist.category,
+                created_at=checklist.created_at,
+                items=[{
+                    "id": item.id,
+                    "checklist_id": item.checklist_id,
+                    "text": item.text,
+                    "is_required": item.is_required
+                } for item in items]
+            ))
     
     return result
  
