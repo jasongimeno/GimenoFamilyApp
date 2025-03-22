@@ -411,9 +411,38 @@ function setupEventListeners() {
 
 async function loadMeals() {
     try {
-        document.getElementById('loading-meals').classList.remove('hidden');
-        document.getElementById('no-meals-message').classList.add('hidden');
-        document.getElementById('meals-container').innerHTML = '<div id="loading-meals" class="col-span-full text-center py-8"><p class="text-gray-500">Loading meals...</p></div>';
+        const mealsContainer = document.getElementById('meals-container');
+        
+        // Find or create loading element
+        let loadingElement = document.getElementById('loading-meals');
+        if (!loadingElement) {
+            loadingElement = document.createElement('div');
+            loadingElement.id = 'loading-meals';
+            loadingElement.className = 'col-span-full text-center py-8';
+            loadingElement.innerHTML = '<p class="text-gray-500">Loading meals...</p>';
+            mealsContainer.appendChild(loadingElement);
+        } else {
+            loadingElement.classList.remove('hidden');
+        }
+        
+        // Find or create no meals message element
+        let noMealsMessage = document.getElementById('no-meals-message');
+        if (!noMealsMessage) {
+            noMealsMessage = document.createElement('div');
+            noMealsMessage.id = 'no-meals-message';
+            noMealsMessage.className = 'hidden col-span-full text-center py-8';
+            noMealsMessage.innerHTML = '<p class="text-gray-500">No meals found. Add your first meal using the form.</p>';
+            mealsContainer.appendChild(noMealsMessage);
+        } else {
+            noMealsMessage.classList.add('hidden');
+        }
+        
+        // Remove any meal cards but keep our loading and message elements
+        Array.from(mealsContainer.children).forEach(child => {
+            if (child.id !== 'loading-meals' && child.id !== 'no-meals-message') {
+                child.remove();
+            }
+        });
         
         console.log('Fetching meals...');
         const response = await window.auth.apiRequest('/meals/');
@@ -464,13 +493,20 @@ async function loadMeals() {
             }
         }
         
-        document.getElementById('loading-meals').classList.add('hidden');
+        // Hide loading element after data is loaded
+        loadingElement = document.getElementById('loading-meals');
+        if (loadingElement) {
+            loadingElement.classList.add('hidden');
+        }
         
         // Always store the meals in the global variable, even if empty
         window.currentMeals = meals;
         
         if (!meals || meals.length === 0) {
-            document.getElementById('no-meals-message').classList.remove('hidden');
+            noMealsMessage = document.getElementById('no-meals-message');
+            if (noMealsMessage) {
+                noMealsMessage.classList.remove('hidden');
+            }
             // Make sure the weekly view is updated even for no meals
             displayWeek(currentWeekOffset);
             return;
@@ -485,10 +521,22 @@ async function loadMeals() {
         return meals;  // Return the meals for possible use by callers
     } catch (error) {
         console.error('Error loading meals:', error);
-        document.getElementById('loading-meals').classList.add('hidden');
-        document.getElementById('no-meals-message').classList.remove('hidden');
-        document.getElementById('no-meals-message').querySelector('p').textContent = 
-            'Could not load meals. Please refresh the page to try again.';
+        
+        // Find loading element and hide it
+        const loadingElement = document.getElementById('loading-meals');
+        if (loadingElement) {
+            loadingElement.classList.add('hidden');
+        }
+        
+        // Find no meals message and show error
+        const noMealsMessage = document.getElementById('no-meals-message');
+        if (noMealsMessage) {
+            noMealsMessage.classList.remove('hidden');
+            const messageP = noMealsMessage.querySelector('p');
+            if (messageP) {
+                messageP.textContent = 'Could not load meals. Please refresh the page to try again.';
+            }
+        }
         
         // Set window.currentMeals to empty array if we fail to load
         window.currentMeals = [];
@@ -1016,6 +1064,32 @@ async function searchMeals(query) {
     }
     
     try {
+        // Make sure our loading and message elements exist
+        let loadingElement = document.getElementById('loading-meals');
+        let noMealsMessage = document.getElementById('no-meals-message');
+        const mealsContainer = document.getElementById('meals-container');
+        
+        // If loading element doesn't exist, create it
+        if (!loadingElement) {
+            loadingElement = document.createElement('div');
+            loadingElement.id = 'loading-meals';
+            loadingElement.className = 'col-span-full text-center py-8';
+            loadingElement.innerHTML = '<p class="text-gray-500">Loading meals...</p>';
+            mealsContainer.innerHTML = '';
+            mealsContainer.appendChild(loadingElement);
+        } else {
+            loadingElement.classList.remove('hidden');
+        }
+        
+        // If no meals message doesn't exist, create it
+        if (!noMealsMessage) {
+            noMealsMessage = document.createElement('div');
+            noMealsMessage.id = 'no-meals-message';
+            noMealsMessage.className = 'hidden col-span-full text-center py-8';
+            noMealsMessage.innerHTML = '<p class="text-gray-500">No meals found. Add your first meal using the form.</p>';
+            mealsContainer.appendChild(noMealsMessage);
+        }
+        
         const response = await window.auth.apiRequest('/meals/search', {
             method: 'POST',
             body: JSON.stringify({ query })
@@ -1023,16 +1097,27 @@ async function searchMeals(query) {
         
         const meals = await response.json();
         
-        document.getElementById('loading-meals').classList.add('hidden');
+        // Get the loading element again (it might have been recreated)
+        loadingElement = document.getElementById('loading-meals');
+        if (loadingElement) {
+            loadingElement.classList.add('hidden');
+        }
+        
+        // Get the no meals message element again
+        noMealsMessage = document.getElementById('no-meals-message');
         
         if (meals.length === 0) {
-            document.getElementById('no-meals-message').classList.remove('hidden');
-            document.getElementById('no-meals-message').querySelector('p').textContent = 
-                `No meals found matching "${query}". Try a different search term.`;
+            if (noMealsMessage) {
+                noMealsMessage.classList.remove('hidden');
+                noMealsMessage.querySelector('p').textContent = 
+                    `No meals found matching "${query}". Try a different search term.`;
+            }
             return;
         }
         
-        document.getElementById('no-meals-message').classList.add('hidden');
+        if (noMealsMessage) {
+            noMealsMessage.classList.add('hidden');
+        }
         renderMeals(meals);
     } catch (error) {
         console.error('Error searching meals:', error);

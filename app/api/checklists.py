@@ -585,15 +585,38 @@ def search(
     if ENABLE_SEARCH:
         try:
             from app.utils.azure_search import search_checklists
+            from app.utils.azure_search import search_available
+            
+            # Check and log if search is available
+            logger.info(f"Azure Search available: {search_available}")
+            
+            # Log the search query
+            logger.info(f"Searching checklists with query: '{q}' for user: {current_user.id}")
+            
             search_results = search_checklists(current_user.id, q)
             logger.info(f"Using Azure Cognitive Search for checklist search with query: {q}")
-        except ImportError:
-            logger.warning("Azure Cognitive Search module not found")
+            
+            # Log search results for debugging
+            logger.info(f"Search results: {search_results}")
+            
+            # If no results, try a fallback database search
+            if not search_results["hits"]["hits"]:
+                logger.warning(f"No results from Azure Search, trying database fallback")
+                return search_checklists_in_database(db, current_user.id, q)
+        except ImportError as e:
+            logger.warning(f"Azure Cognitive Search module not found: {str(e)}")
+            return search_checklists_in_database(db, current_user.id, q)
         except Exception as e:
-            logger.error(f"Error using Azure Cognitive Search: {str(e)}")
+            logger.error(f"Error using Azure Cognitive Search: {str(e)}", exc_info=True)
+            return search_checklists_in_database(db, current_user.id, q)
+    else:
+        # If search is disabled, use database search
+        logger.info("Search is disabled, using database search")
+        return search_checklists_in_database(db, current_user.id, q)
     
     # Extract checklist IDs
     checklist_ids = [hit["_source"]["id"] for hit in search_results["hits"]["hits"]]
+    logger.info(f"Found {len(checklist_ids)} checklist IDs from search")
     
     # Get checklists from database
     result = []
@@ -615,5 +638,99 @@ def search(
                 } for item in items]
             ))
     
+    logger.info(f"Returning {len(result)} checklists from search")
+    return result
+
+def search_checklists_in_database(db, user_id, query, limit=10):
+    """Search checklists in the database as a fallback when Azure Search is unavailable"""
+    logger.info(f"Performing database search for: '{query}'")
+    
+    # Use a more flexible search by splitting the query into words
+    search_terms = query.lower().split()
+    
+    if not search_terms:
+        # If no search terms, return recent checklists
+        checklists = db.query(Checklist).filter(
+            Checklist.user_id == user_id
+        ).order_by(Checklist.created_at.desc()).limit(limit).all()
+        
+        logger.info(f"Empty search term, returning {len(checklists)} recent checklists")
+        
+        # Get items for each checklist
+        result = []
+        for checklist in checklists:
+            items = db.query(ChecklistItem).filter(ChecklistItem.checklist_id == checklist.id).all()
+            result.append(ChecklistResponse(
+                id=checklist.id,
+                user_id=checklist.user_id,
+                title=checklist.title,
+                category=checklist.category,
+                created_at=checklist.created_at,
+                items=[{
+                    "id": item.id,
+                    "checklist_id": item.checklist_id,
+                    "text": item.text,
+                    "is_required": item.is_required
+                } for item in items]
+            ))
+        
+        return result
+    
+    # Build a query that searches for any of the terms in title and category
+    from sqlalchemy import or_
+    conditions = []
+    
+    for term in search_terms:
+        conditions.append(Checklist.title.ilike(f"%{term}%"))
+        conditions.append(Checklist.category.ilike(f"%{term}%"))
+    
+    # We also need to search in checklist items, which requires a join
+    # First, find checklists matching the search terms
+    matching_checklists = db.query(Checklist).filter(
+        Checklist.user_id == user_id,
+        or_(*conditions)
+    ).all()
+    
+    # Then, find checklists with items matching the search terms
+    item_conditions = []
+    for term in search_terms:
+        item_conditions.append(ChecklistItem.text.ilike(f"%{term}%"))
+    
+    checklists_with_matching_items = db.query(Checklist).join(
+        ChecklistItem, Checklist.id == ChecklistItem.checklist_id
+    ).filter(
+        Checklist.user_id == user_id,
+        or_(*item_conditions)
+    ).all()
+    
+    # Combine the results (removing duplicates)
+    all_checklists = {}
+    for checklist in matching_checklists + checklists_with_matching_items:
+        all_checklists[checklist.id] = checklist
+    
+    # Now get all the matching checklists with their items
+    result = []
+    for checklist in all_checklists.values():
+        items = db.query(ChecklistItem).filter(ChecklistItem.checklist_id == checklist.id).all()
+        result.append(ChecklistResponse(
+            id=checklist.id,
+            user_id=checklist.user_id,
+            title=checklist.title,
+            category=checklist.category,
+            created_at=checklist.created_at,
+            items=[{
+                "id": item.id,
+                "checklist_id": item.checklist_id,
+                "text": item.text,
+                "is_required": item.is_required
+            } for item in items]
+        ))
+    
+    # Sort by created_at (newest first) and limit
+    result.sort(key=lambda x: x.created_at, reverse=True)
+    if limit and len(result) > limit:
+        result = result[:limit]
+    
+    logger.info(f"Database search found {len(result)} checklists")
     return result
  

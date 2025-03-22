@@ -198,9 +198,54 @@ def search_events(
     
     # Get events from database
     events = []
-    for event_id in event_ids:
-        event = db.query(CarpoolEvent).filter(CarpoolEvent.id == event_id).first()
-        if event:
-            events.append(event)
+    if event_ids:
+        for event_id in event_ids:
+            event = db.query(CarpoolEvent).filter(CarpoolEvent.id == event_id).first()
+            if event:
+                events.append(event)
+    else:
+        # Fallback to database search if Azure Search returns no results
+        logger.info(f"Azure Search returned no results, falling back to database search for query: {search_query.query}")
+        events = search_carpool_events_in_database(db, current_user.id, search_query.query)
     
-    return events 
+    return events
+
+# Helper function for database fallback search
+def search_carpool_events_in_database(db: Session, user_id: int, query: str, limit: int = 100):
+    """
+    Search for carpool events in the database using a flexible search approach.
+    This is used as a fallback when Azure Search is unavailable or returns no results.
+    """
+    if not query or query.strip() == "*" or query.strip() == "":
+        # If no specific search query, return recent events
+        logger.info("No specific search query provided, returning recent carpool events")
+        return db.query(CarpoolEvent).filter(
+            CarpoolEvent.user_id == user_id
+        ).order_by(CarpoolEvent.created_at.desc()).limit(limit).all()
+    
+    # Split the query into words for flexible searching
+    search_terms = query.strip().lower().split()
+    logger.info(f"Searching database for carpool events with terms: {search_terms}")
+    
+    # Build a query that searches in description, destination, and notes
+    from sqlalchemy import or_
+    
+    # Start with a base query for the user's events
+    base_query = db.query(CarpoolEvent).filter(CarpoolEvent.user_id == user_id)
+    
+    # For each search term, add OR conditions for description, destination, and notes
+    for term in search_terms:
+        like_term = f"%{term}%"
+        base_query = base_query.filter(
+            or_(
+                CarpoolEvent.description.ilike(like_term),
+                CarpoolEvent.destination.ilike(like_term),
+                CarpoolEvent.notes.ilike(like_term)
+            )
+        )
+    
+    # Order by creation date and limit results
+    results = base_query.order_by(CarpoolEvent.created_at.desc()).limit(limit).all()
+    logger.info(f"Database search returned {len(results)} carpool events")
+    
+    return results 

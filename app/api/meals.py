@@ -174,15 +174,38 @@ def search_meal_plans(
     if ENABLE_SEARCH:
         try:
             from app.utils.azure_search import search_meals as azure_search_meals
+            from app.utils.azure_search import search_available
+            
+            # Check and log if search is available
+            logger.info(f"Azure Search available: {search_available}")
+            
+            # Log the search query
+            logger.info(f"Searching meals with query: '{search_query.query}' for user: {current_user.id}")
+            
             search_results = azure_search_meals(current_user.id, search_query.query)
             logger.info(f"Using Azure Cognitive Search for meal search with query: {search_query.query}")
-        except ImportError:
-            logger.warning("Azure Cognitive Search module not found")
+            
+            # Log search results for debugging
+            logger.info(f"Search results: {search_results}")
+            
+            # If no results, try a fallback database search
+            if not search_results["hits"]["hits"]:
+                logger.warning(f"No results from Azure Search, trying database fallback")
+                return search_meals_in_database(db, current_user.id, search_query.query)
+        except ImportError as e:
+            logger.warning(f"Azure Cognitive Search module not found: {str(e)}")
+            return search_meals_in_database(db, current_user.id, search_query.query)
         except Exception as e:
-            logger.error(f"Error using Azure Cognitive Search: {str(e)}")
+            logger.error(f"Error using Azure Cognitive Search: {str(e)}", exc_info=True)
+            return search_meals_in_database(db, current_user.id, search_query.query)
+    else:
+        # If search is disabled, use database search
+        logger.info("Search is disabled, using database search")
+        return search_meals_in_database(db, current_user.id, search_query.query)
     
     # Extract meal IDs
     meal_ids = [hit["_source"]["id"] for hit in search_results["hits"]["hits"]]
+    logger.info(f"Found {len(meal_ids)} meal IDs from search")
     
     # Get meals from database
     meals = []
@@ -191,6 +214,40 @@ def search_meal_plans(
         if meal:
             meals.append(meal)
     
+    logger.info(f"Returning {len(meals)} meals from search")
+    return meals
+
+def search_meals_in_database(db, user_id, query, limit=10):
+    """Search meals in the database as a fallback when Azure Search is unavailable"""
+    logger.info(f"Performing database search for: '{query}'")
+    
+    # Use a more flexible search by splitting the query into words
+    search_terms = query.lower().split()
+    
+    if not search_terms:
+        # If no search terms, return recent meals
+        meals = db.query(Meal).filter(
+            Meal.user_id == user_id
+        ).order_by(Meal.planned_date.desc()).limit(limit).all()
+        
+        logger.info(f"Empty search term, returning {len(meals)} recent meals")
+        return meals
+    
+    # Build a query that searches for any of the terms in name or details
+    from sqlalchemy import or_
+    conditions = []
+    
+    for term in search_terms:
+        conditions.append(Meal.name.ilike(f"%{term}%"))
+        conditions.append(Meal.details.ilike(f"%{term}%"))
+    
+    # Get meals that match any of the search terms
+    meals = db.query(Meal).filter(
+        Meal.user_id == user_id,
+        or_(*conditions)
+    ).order_by(Meal.planned_date.desc()).limit(limit).all()
+    
+    logger.info(f"Database search found {len(meals)} meals")
     return meals
 
 # Get meal suggestions based on history
