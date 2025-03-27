@@ -97,6 +97,19 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
                     </div>
                     
+                    <div>
+                        <label for="meal-recipe" class="block text-sm font-medium text-gray-700 mb-1">Recipe (Paste in Recipe to have ingredients added to the weekly shopping list)</label>
+                        <textarea id="meal-recipe" name="recipe" rows="6"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                        <div class="mt-2">
+                            <button type="button" id="parse-recipe-btn"
+                                class="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded text-sm">
+                                Extract Ingredients
+                            </button>
+                            <span id="recipe-status" class="ml-2 text-sm hidden"></span>
+                        </div>
+                    </div>
+                    
                     <button type="submit"
                         class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded">
                         Add Meal
@@ -180,6 +193,8 @@ if (!window.auth) {
     console.log('Creating fallback auth implementation');
     window.auth = {
         apiRequest: async function(url, options = {}) {
+            console.log("auth.apiRequest called with URL:", url);
+            
             const defaultOptions = {
                 method: 'GET',
                 headers: {
@@ -197,6 +212,22 @@ if (!window.auth) {
                     fetchOptions.headers['X-CSRFToken'] = csrfToken;
                 }
             }
+            
+            // Debug: Log cookies and localStorage for auth debugging
+            console.log("Document cookies:", document.cookie);
+            
+            // Try to get token from localStorage (where FastAPI OAuth typically stores it)
+            const authToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            
+            console.log("Auth token from storage:", authToken ? "Found (starting with " + authToken.substring(0, 10) + "...)" : "Not found");
+            
+            // Add Authorization header if token exists
+            if (authToken && !fetchOptions.headers['Authorization']) {
+                fetchOptions.headers['Authorization'] = `Bearer ${authToken}`;
+                console.log("Added Authorization header with token");
+            }
+            
+            console.log("Final request headers:", fetchOptions.headers);
             
             try {
                 // Use full URL if we're in a different domain
@@ -312,6 +343,98 @@ if (!window.app) {
 
 // Delay initialization to ensure scripts are loaded
 setTimeout(function() {
+    // Set up recipe parsing functionality immediately
+    const setupRecipeParser = function() {
+        console.log("Setting up recipe parser...");
+        const parseRecipeBtn = document.getElementById('parse-recipe-btn');
+        const recipeStatus = document.getElementById('recipe-status');
+        const recipeTextarea = document.getElementById('meal-recipe');
+        const mealDateInput = document.getElementById('meal-date');
+        
+        if (parseRecipeBtn && recipeTextarea && mealDateInput) {
+            console.log("Found recipe elements, attaching event listener");
+            parseRecipeBtn.addEventListener('click', async function() {
+                const recipeText = recipeTextarea.value.trim();
+                const mealDate = mealDateInput.value;
+                
+                console.log("Extract Ingredients button clicked");
+                console.log("Recipe text:", recipeText);
+                console.log("Meal date:", mealDate);
+                
+                if (!recipeText) {
+                    window.app.showNotification('Please enter a recipe to parse', 'error');
+                    return;
+                }
+                
+                if (!mealDate) {
+                    window.app.showNotification('Please select a meal date first', 'error');
+                    return;
+                }
+                
+                // Show parsing status
+                recipeStatus.textContent = 'Parsing recipe...';
+                recipeStatus.className = 'ml-2 text-sm text-blue-600';
+                recipeStatus.classList.remove('hidden');
+                parseRecipeBtn.disabled = true;
+                
+                try {
+                    console.log("Making API request to:", '/api/meal-planning/parse-recipe');
+                    
+                    // Use the same auth.apiRequest method that works for other API calls
+                    const response = await window.auth.apiRequest('/api/meal-planning/parse-recipe', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            recipe_text: recipeText,
+                            meal_date: mealDate
+                        })
+                    });
+                    
+                    console.log("API response status:", response.status);
+                    
+                    if (!response.ok) {
+                        let errorDetail = 'Failed to parse recipe';
+                        try {
+                            const errorData = await response.json();
+                            console.error("API error:", errorData);
+                            errorDetail = errorData.detail || errorDetail;
+                        } catch (e) {
+                            console.error("Error parsing error response:", e);
+                        }
+                        throw new Error(errorDetail);
+                    }
+                    
+                    const data = await response.json();
+                    console.log("API response data:", data);
+                    
+                    // Show success message
+                    recipeStatus.textContent = `Added ${data.ingredients_added.length} ingredients to "${data.checklist_name}"`;
+                    recipeStatus.className = 'ml-2 text-sm text-green-600';
+                    
+                    // Show notification
+                    window.app.showNotification(`Added ${data.ingredients_added.length} ingredients to your weekly shopping list`, 'success');
+                    
+                } catch (error) {
+                    recipeStatus.textContent = `Error: ${error.message}`;
+                    recipeStatus.className = 'ml-2 text-sm text-red-600';
+                    window.app.showNotification(`Failed to parse recipe: ${error.message}`, 'error');
+                } finally {
+                    parseRecipeBtn.disabled = false;
+                }
+            });
+        } else {
+            console.error("Failed to find recipe elements:", {
+                parseRecipeBtn: !!parseRecipeBtn,
+                recipeStatus: !!recipeStatus,
+                recipeTextarea: !!recipeTextarea,
+                mealDateInput: !!mealDateInput
+            });
+        }
+    };
+    
+    // Try to set up recipe parser immediately
+    setupRecipeParser();
+    
+    // Also set up when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
         // Set date input to today's date by default
         const today = new Date();
@@ -324,6 +447,9 @@ setTimeout(function() {
         
         // Initialize weekly view with current week
         displayWeek(0); // 0 = current week
+        
+        // Try to set up recipe parser again
+        setupRecipeParser();
     });
 
     // If DOM is already loaded, run initialization
@@ -834,7 +960,8 @@ async function addOrUpdateMeal() {
             name: formData.get('name'),
             meal_time: formData.get('meal_time'),
             planned_date: formData.get('planned_date'),
-            details: formData.get('details')
+            details: formData.get('details'),
+            recipe: formData.get('recipe')
         };
         
         // Check if we're in edit mode

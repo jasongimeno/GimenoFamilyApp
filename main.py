@@ -20,6 +20,7 @@ from app.api.checklists import router as checklists_router
 from app.api.carpool import router as carpool_router
 from app.api.pages import router as pages_router
 from app.api.diagnostics import router as diagnostics_router
+from app.api.meal_planning import router as meal_planning_router
 
 # Import centralized templates
 from app.utils.template_helpers import templates
@@ -90,6 +91,7 @@ app.include_router(meals_router)
 app.include_router(carpool_router)
 app.include_router(pages_router)
 app.include_router(diagnostics_router, prefix="/api/diagnostics")
+app.include_router(meal_planning_router, prefix="/api/meal-planning")
 
 # Global exception handler
 @app.exception_handler(Exception)
