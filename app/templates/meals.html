@@ -25,7 +25,7 @@
     </header>
 
     <div class="flex flex-wrap mb-6">
-        <div class="w-full md:w-3/4 mb-4 md:pr-4">
+        <div class="w-full mb-4">
             <div class="bg-white rounded-lg shadow-md p-4">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-purple-600">Weekly Meal Plan</h2>
@@ -47,6 +47,12 @@
                         <button id="get-suggestions-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded ml-2">
                             Get AI Suggestions
                         </button>
+                        <button id="add-meal-btn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded flex items-center ml-2">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Add Meal
+                        </button>
                     </div>
                 </div>
                 
@@ -61,60 +67,6 @@
                     </div>
                     {% endfor %}
                 </div>
-            </div>
-        </div>
-        
-        <div class="w-full md:w-1/4">
-            <div class="bg-white rounded-lg shadow-md p-4">
-                <h2 class="text-xl font-semibold text-purple-600 mb-4">Add Meal</h2>
-                <form id="add-meal-form" class="space-y-4">
-                    <div>
-                        <label for="meal-name" class="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
-                        <input type="text" id="meal-name" name="name" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    
-                    <div>
-                        <label for="meal-time" class="block text-sm font-medium text-gray-700 mb-1">Meal Time</label>
-                        <select id="meal-time" name="meal_time" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                            <option value="Breakfast">Breakfast</option>
-                            <option value="Lunch">Lunch</option>
-                            <option value="Dinner" selected>Dinner</option>
-                            <option value="Snack">Snack</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label for="meal-date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input type="date" id="meal-date" name="planned_date" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    
-                    <div>
-                        <label for="meal-details" class="block text-sm font-medium text-gray-700 mb-1">Details (Optional)</label>
-                        <textarea id="meal-details" name="details" rows="3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
-                    </div>
-                    
-                    <div>
-                        <label for="meal-recipe" class="block text-sm font-medium text-gray-700 mb-1">Recipe (Paste in Recipe to have ingredients added to the weekly shopping list)</label>
-                        <textarea id="meal-recipe" name="recipe" rows="6"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
-                        <div class="mt-2">
-                            <button type="button" id="parse-recipe-btn"
-                                class="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded text-sm">
-                                Extract Ingredients
-                            </button>
-                            <span id="recipe-status" class="ml-2 text-sm hidden"></span>
-                        </div>
-                    </div>
-                    
-                    <button type="submit"
-                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded">
-                        Add Meal
-                    </button>
-                </form>
             </div>
         </div>
     </div>
@@ -142,7 +94,7 @@
     </div>
 </div>
 
-<!-- Add Meal Modal -->
+<!-- Meal Details Modal -->
 <div id="meal-details-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
         <div class="p-6">
@@ -182,6 +134,73 @@
                 </button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Add Meal Modal -->
+<div id="add-meal-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 class="text-xl font-medium text-purple-700">Add New Meal</h3>
+            <button id="close-meal-modal" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <form id="add-meal-form" class="mt-4 space-y-4">
+            <div>
+                <label for="meal-name" class="block text-sm font-medium text-gray-700 mb-1">Meal Name</label>
+                <input type="text" id="meal-name" name="name" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            
+            <div>
+                <label for="meal-time" class="block text-sm font-medium text-gray-700 mb-1">Meal Time</label>
+                <select id="meal-time" name="meal_time" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner" selected>Dinner</option>
+                    <option value="Snack">Snack</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="meal-date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input type="date" id="meal-date" name="planned_date" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            
+            <div>
+                <label for="meal-details" class="block text-sm font-medium text-gray-700 mb-1">Details (Optional)</label>
+                <textarea id="meal-details" name="details" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+            </div>
+            
+            <div>
+                <label for="meal-recipe" class="block text-sm font-medium text-gray-700 mb-1">Recipe (Paste in Recipe to have ingredients added to the weekly shopping list)</label>
+                <textarea id="meal-recipe" name="recipe" rows="6"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                <div class="mt-2">
+                    <button type="button" id="parse-recipe-btn"
+                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded text-sm">
+                        Extract Ingredients to Shopping List
+                    </button>
+                    <span id="recipe-status" class="ml-2 text-sm hidden"></span>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-6 space-x-3">
+                <button type="button" id="cancel-meal" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                    Add Meal
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}
@@ -357,7 +376,7 @@ setTimeout(function() {
                 const recipeText = recipeTextarea.value.trim();
                 const mealDate = mealDateInput.value;
                 
-                console.log("Extract Ingredients button clicked");
+                console.log("Extract Ingredients to Shopping List button clicked");
                 console.log("Recipe text:", recipeText);
                 console.log("Meal date:", mealDate);
                 
@@ -431,8 +450,102 @@ setTimeout(function() {
         }
     };
     
+    // Setup meal modal functionality
+    const setupMealModal = function() {
+        console.log("Setting up meal modal...");
+        const addMealBtn = document.getElementById('add-meal-btn');
+        const addMealModal = document.getElementById('add-meal-modal');
+        const closeMealModal = document.getElementById('close-meal-modal');
+        const cancelMealBtn = document.getElementById('cancel-meal');
+        
+        if (addMealBtn && addMealModal && closeMealModal && cancelMealBtn) {
+            console.log("Found meal modal elements, attaching event listeners");
+            
+            // Show modal when clicking Add Meal button
+            addMealBtn.addEventListener('click', function() {
+                console.log("Add Meal button clicked");
+                // Reset form fields
+                const form = document.getElementById('add-meal-form');
+                form.reset();
+                
+                // Set today's date as default
+                const today = new Date();
+                const formattedDate = today.toISOString().substr(0, 10);
+                document.getElementById('meal-date').value = formattedDate;
+                
+                // Reset any edit mode
+                form.dataset.editMode = 'false';
+                form.dataset.editMealId = '';
+                
+                // Reset submit button text
+                const submitButton = form.querySelector('button[type="submit"]');
+                submitButton.textContent = 'Add Meal';
+                
+                // Show modal
+                addMealModal.classList.remove('hidden');
+            });
+            
+            // Close modal when clicking close button or cancel button
+            closeMealModal.addEventListener('click', function() {
+                addMealModal.classList.add('hidden');
+            });
+            
+            cancelMealBtn.addEventListener('click', function() {
+                addMealModal.classList.add('hidden');
+            });
+            
+            // Close modal when clicking outside of modal content
+            addMealModal.addEventListener('click', function(event) {
+                if (event.target === addMealModal) {
+                    addMealModal.classList.add('hidden');
+                }
+            });
+            
+            console.log("Meal modal setup complete");
+        } else {
+            console.error("Failed to find meal modal elements:", {
+                addMealBtn: !!addMealBtn,
+                addMealModal: !!addMealModal,
+                closeMealModal: !!closeMealModal,
+                cancelMealBtn: !!cancelMealBtn
+            });
+        }
+    };
+    
+    // Modify the openEditMealModal function
+    window.openEditMealModal = function(meal) {
+        // Hide details modal if open
+        document.getElementById('meal-details-modal').classList.add('hidden');
+        
+        // Fill the add meal form with the meal details for editing
+        document.getElementById('meal-name').value = meal.name;
+        document.getElementById('meal-time').value = meal.meal_time;
+        
+        // Format date for the input field (YYYY-MM-DD)
+        const dateObj = new Date(meal.planned_date);
+        const formattedDate = dateObj.toISOString().substr(0, 10);
+        document.getElementById('meal-date').value = formattedDate;
+        
+        document.getElementById('meal-details').value = meal.details || '';
+        
+        // Change the form to edit mode
+        const form = document.getElementById('add-meal-form');
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.textContent = 'Update Meal';
+        
+        // Store the meal ID in the form for reference
+        form.dataset.editMealId = meal.id;
+        form.dataset.editMode = 'true';
+        
+        // Show the modal
+        document.getElementById('add-meal-modal').classList.remove('hidden');
+    };
+    
     // Try to set up recipe parser immediately
     setupRecipeParser();
+    
+    // Try to set up meal modal immediately
+    setupMealModal();
     
     // Also set up when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
@@ -450,6 +563,9 @@ setTimeout(function() {
         
         // Try to set up recipe parser again
         setupRecipeParser();
+        
+        // Try to set up meal modal again
+        setupMealModal();
     });
 
     // If DOM is already loaded, run initialization
@@ -920,38 +1036,6 @@ function showMealDetails(meal) {
     modal.classList.remove('hidden');
 }
 
-// Create a new function to handle editing a meal
-function openEditMealModal(meal) {
-    // Hide details modal
-    document.getElementById('meal-details-modal').classList.add('hidden');
-    
-    // Fill the add meal form with the meal details for editing
-    document.getElementById('meal-name').value = meal.name;
-    document.getElementById('meal-time').value = meal.meal_time;
-    
-    // Format date for the input field (YYYY-MM-DD)
-    const dateObj = new Date(meal.planned_date);
-    const formattedDate = dateObj.toISOString().substr(0, 10);
-    document.getElementById('meal-date').value = formattedDate;
-    
-    document.getElementById('meal-details').value = meal.details || '';
-    
-    // Change the form to edit mode
-    const form = document.getElementById('add-meal-form');
-    const submitButton = form.querySelector('button[type="submit"]');
-    submitButton.textContent = 'Update Meal';
-    
-    // Store the meal ID in the form for reference
-    form.dataset.editMealId = meal.id;
-    form.dataset.editMode = 'true';
-    
-    // Scroll to the form
-    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    
-    // Focus on the first field
-    document.getElementById('meal-name').focus();
-}
-
 async function addOrUpdateMeal() {
     try {
         const form = document.getElementById('add-meal-form');
@@ -998,6 +1082,9 @@ async function addOrUpdateMeal() {
             
             // Set date back to today's date for new meals
             document.getElementById('meal-date').value = new Date().toISOString().substr(0, 10);
+            
+            // Hide the modal
+            document.getElementById('add-meal-modal').classList.add('hidden');
             
             // Show success message
             app.showNotification(
@@ -1077,6 +1164,9 @@ async function addOrUpdateMeal() {
                 
                 // Set date back to today
                 document.getElementById('meal-date').value = new Date().toISOString().substr(0, 10);
+                
+                // Hide the modal
+                document.getElementById('add-meal-modal').classList.add('hidden');
             } else {
                 // If we didn't find a matching meal, the operation probably failed
                 app.showNotification('Failed to save meal. Please try again.', 'error');

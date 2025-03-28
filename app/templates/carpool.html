@@ -36,45 +36,8 @@
     </header>
 
     <div class="flex flex-wrap mb-6">
-        <!-- Create New Event Form -->
-        <div class="w-full lg:w-1/3 lg:pr-4 mb-6 lg:mb-0">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-semibold text-green-600 mb-4">Create New Event</h2>
-                <form id="new-event-form" class="space-y-4">
-                    <div>
-                        <label for="event-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <input type="text" id="event-description" name="description" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    
-                    <div>
-                        <label for="event-destination" class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-                        <input type="text" id="event-destination" name="destination" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    
-                    <div>
-                        <label for="event-date" class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
-                        <input type="datetime-local" id="event-date" name="drop_off_time" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                    </div>
-                    
-                    <div>
-                        <label for="event-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                        <textarea id="event-notes" name="notes" rows="3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
-                    </div>
-                    
-                    <button type="submit"
-                        class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded">
-                        Create Event
-                    </button>
-                </form>
-            </div>
-        </div>
-        
         <!-- Event Search and List View -->
-        <div class="w-full lg:w-2/3">
+        <div class="w-full">
             <div class="bg-white rounded-lg shadow-md p-6">
                 <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
                     <h2 class="text-xl font-semibold text-green-600 mb-3 md:mb-0">Upcoming Events</h2>
@@ -96,6 +59,13 @@
                                 Calendar
                             </button>
                         </div>
+                        
+                        <button id="create-event-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Create Event
+                        </button>
                     </div>
                 </div>
                 
@@ -181,6 +151,55 @@
                 </button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Create/Edit Event Modal -->
+<div id="create-event-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h3 id="event-modal-title" class="text-xl font-medium text-green-700">Create New Event</h3>
+            <button id="close-event-modal" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <form id="new-event-form" class="mt-4 space-y-4">
+            <div>
+                <label for="event-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <input type="text" id="event-description" name="description" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            
+            <div>
+                <label for="event-destination" class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                <input type="text" id="event-destination" name="destination" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            
+            <div>
+                <label for="event-date" class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                <input type="datetime-local" id="event-date" name="drop_off_time" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            
+            <div>
+                <label for="event-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                <textarea id="event-notes" name="notes" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+            </div>
+            
+            <div class="flex justify-end mt-6 space-x-3">
+                <button type="button" id="cancel-event" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
+                    Cancel
+                </button>
+                <button type="submit" id="save-event" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Create Event
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}
@@ -344,18 +363,11 @@ setTimeout(function() {
 }, 300); // Small delay to allow scripts to load
 
 function setDefaultEventTime() {
+    // Set current date and time as default
     const now = new Date();
-    now.setHours(now.getHours() + 1);
-    now.setMinutes(0);
-    
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    
-    const defaultDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-    document.getElementById('event-date').value = defaultDateTime;
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Adjust for timezone
+    const formattedDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+    document.getElementById('event-date').value = formattedDateTime;
 }
 
 function setupEventListeners() {
@@ -364,7 +376,7 @@ function setupEventListeners() {
     if (newEventForm) {
         newEventForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            createEvent();
+            createEvent(e);
         });
     }
     
@@ -659,15 +671,48 @@ function showEventDetails(event) {
     // Set up edit button
     const editBtn = document.getElementById('modal-edit-btn');
     editBtn.onclick = function() {
-        // In a complete app, we'd populate a form for editing
-        modal.classList.add('hidden');
-        app.showNotification('Editing functionality will be implemented in a future update.', 'info');
+        openEditEventModal(event);
     };
     
     modal.classList.remove('hidden');
 }
 
-async function createEvent() {
+// Function to open the edit event modal
+function openEditEventModal(event) {
+    // Hide details modal
+    document.getElementById('event-details-modal').classList.add('hidden');
+    
+    // Update modal title
+    document.getElementById('event-modal-title').textContent = 'Edit Event';
+    
+    // Fill the form with the event details
+    document.getElementById('event-description').value = event.description;
+    document.getElementById('event-destination').value = event.destination;
+    
+    // Format date-time for the input field
+    const dateObj = new Date(event.drop_off_time);
+    const formattedDateTime = dateObj.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+    document.getElementById('event-date').value = formattedDateTime;
+    
+    document.getElementById('event-notes').value = event.notes || '';
+    
+    // Change the form to edit mode
+    const form = document.getElementById('new-event-form');
+    form.dataset.editMode = 'true';
+    form.dataset.eventId = event.id;
+    
+    // Update button text
+    document.getElementById('save-event').textContent = 'Update Event';
+    
+    // Show the modal
+    document.getElementById('create-event-modal').classList.remove('hidden');
+}
+
+async function createEvent(e) {
+    if (e) {
+        e.preventDefault();
+    }
+    
     try {
         const form = document.getElementById('new-event-form');
         const formData = new FormData(form);
@@ -678,23 +723,55 @@ async function createEvent() {
             notes: formData.get('notes') || null
         };
         
-        const response = await window.auth.apiRequest('/carpool/events', {
-            method: 'POST',
-            body: JSON.stringify(eventData)
-        });
+        // Check if we're in edit mode
+        const editMode = form.dataset.editMode === 'true';
+        const eventId = form.dataset.eventId;
+        
+        let response;
+        
+        if (editMode) {
+            // Update existing event
+            response = await window.auth.apiRequest(`/carpool/events/${eventId}`, {
+                method: 'PUT',
+                body: JSON.stringify(eventData)
+            });
+        } else {
+            // Create new event
+            response = await window.auth.apiRequest('/carpool/events', {
+                method: 'POST',
+                body: JSON.stringify(eventData)
+            });
+        }
         
         if (response.ok) {
+            // Reset form
             form.reset();
             setDefaultEventTime();
-            app.showNotification('Carpool event created successfully!', 'success');
+            
+            // Hide the modal
+            document.getElementById('create-event-modal').classList.add('hidden');
+            
+            // Reset form state
+            form.dataset.editMode = 'false';
+            form.dataset.eventId = '';
+            document.getElementById('event-modal-title').textContent = 'Create New Event';
+            document.getElementById('save-event').textContent = 'Create Event';
+            
+            // Show success notification
+            app.showNotification(
+                editMode ? 'Event updated successfully!' : 'Carpool event created successfully!', 
+                'success'
+            );
+            
+            // Refresh the events list
             loadEvents();
         } else {
             const error = await response.json();
             app.showNotification(error.detail || 'Failed to create carpool event', 'error');
         }
     } catch (error) {
-        console.error('Error creating event:', error);
-        app.showNotification('Failed to create carpool event. Please try again later.', 'error');
+        console.error('Error creating/updating event:', error);
+        app.showNotification('Failed to create/update carpool event. Please try again later.', 'error');
     }
 }
 
@@ -769,5 +846,65 @@ async function searchEvents(query) {
         app.showNotification('Failed to search carpool events. Please try again later.', 'error');
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up Create Event button and modal
+    const createEventBtn = document.getElementById('create-event-btn');
+    const createEventModal = document.getElementById('create-event-modal');
+    const closeEventModal = document.getElementById('close-event-modal');
+    const cancelEventBtn = document.getElementById('cancel-event');
+    
+    // Show modal when clicking Create Event button
+    createEventBtn.addEventListener('click', function() {
+        // Reset form fields
+        const form = document.getElementById('new-event-form');
+        form.reset();
+        
+        // Set current date and time as default
+        setDefaultEventTime();
+        
+        // Reset any edit mode
+        form.dataset.editMode = 'false';
+        form.dataset.eventId = '';
+        
+        // Reset modal title and submit button
+        document.getElementById('event-modal-title').textContent = 'Create New Event';
+        document.getElementById('save-event').textContent = 'Create Event';
+        
+        // Show modal
+        createEventModal.classList.remove('hidden');
+    });
+    
+    // Close modal when clicking close button or cancel button
+    closeEventModal.addEventListener('click', function() {
+        createEventModal.classList.add('hidden');
+    });
+    
+    cancelEventBtn.addEventListener('click', function() {
+        createEventModal.classList.add('hidden');
+    });
+    
+    // Close modal when clicking outside of modal content
+    createEventModal.addEventListener('click', function(event) {
+        if (event.target === createEventModal) {
+            createEventModal.classList.add('hidden');
+        }
+    });
+    
+    // Setup event detail modal close buttons
+    document.querySelectorAll('[data-modal-close]').forEach(button => {
+        button.addEventListener('click', function() {
+            this.closest('.fixed').classList.add('hidden');
+        });
+    });
+    
+    // Handle form submission
+    document.getElementById('new-event-form').addEventListener('submit', createEvent);
+    
+    // Load events on page load
+    loadEvents();
+    
+    // The rest of your initialization code can stay as is
+});
 </script>
 {% endblock %} 
