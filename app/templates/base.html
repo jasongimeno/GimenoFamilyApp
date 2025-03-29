@@ -17,93 +17,222 @@
     <link href="{% if has_filter('static_url') %}{{ '/css/styles.css' | static_url }}{% else %}{{ url_for('static', path='/css/styles.css') }}{% endif %}" rel="stylesheet">
     
     {% block head %}{% endblock %}
+
+    <style>
+        /* Force the navbar gradient to be visible */
+        .navbar-gradient {
+            background: linear-gradient(to right, #3b82f6, #60a5fa) !important;
+        }
+        
+        /* Dark mode adjustments */
+        .dark .navbar-gradient {
+            background: linear-gradient(to right, #1e3a8a, #3b82f6) !important;
+        }
+        
+        /* Global dark mode styles */
+        .dark {
+            background-color: #0f172a !important;
+            color: #f1f5f9 !important;
+        }
+        
+        .dark .bg-white, 
+        .dark .bg-gray-50,
+        .dark .bg-gray-100 {
+            background-color: #1e293b !important;
+        }
+        
+        .dark .text-gray-500,
+        .dark .text-gray-600,
+        .dark .text-gray-700,
+        .dark .text-gray-800 {
+            color: #e2e8f0 !important;
+        }
+        
+        .dark .border,
+        .dark .border-gray-200 {
+            border-color: #475569 !important;
+        }
+        
+        /* Dark content */
+        .dark-content {
+            background-color: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #475569 !important;
+        }
+        
+        /* Fix for white buttons with white text */
+        .bg-white.text-white {
+            color: #3b82f6 !important; /* Blue text */
+            border: 1px solid #3b82f6; /* Blue border */
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gray-50 min-h-screen flex flex-col dark:bg-gray-900">
     <!-- Navigation -->
-    <nav class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+    <nav class="navbar-gradient text-white shadow-lg">
         <div class="container mx-auto px-4 py-3">
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-4">
                     <a href="/" class="text-xl font-bold tracking-tight">Family Management Solution</a>
                     <div class="hidden md:flex space-x-4">
-                        <a href="/checklists" class="hover:text-indigo-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Checklist Tool</a>
-                        <a href="/carpool" class="hover:text-indigo-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Carpool Management</a>
-                        <a href="/meals" class="hover:text-indigo-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Meal Planning</a>
+                        <a href="/checklists" class="hover:text-slate-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Checklist Tool</a>
+                        <a href="/carpool" class="hover:text-slate-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Carpool Management</a>
+                        <a href="/meals" class="hover:text-slate-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Meal Planning</a>
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <!-- Theme Toggle Button -->
-                    <button id="theme-toggle" class="theme-toggle bg-white bg-opacity-10 rounded-full p-2" aria-label="Toggle dark mode">
-                        <!-- Sun icon (shown in dark mode) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        <!-- Moon icon (shown in light mode) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <!-- Theme toggle button -->
+                    <button id="theme-toggle" class="theme-toggle p-2 rounded-full focus:outline-none" aria-label="Toggle Dark Mode">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
                     </button>
                     
-                    <div id="user-controls" class="hidden">
-                        <span id="user-email" class="mr-2"></span>
-                        <button id="logout-button" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition-colors shadow-sm hover:shadow-md">Logout</button>
-                    </div>
-                    <div id="auth-controls">
-                        <a href="/login" class="bg-indigo-500 hover:bg-indigo-600 px-3 py-1 rounded text-sm transition-colors shadow-sm hover:shadow-md">Login</a>
-                        <a href="/register" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm ml-2 transition-colors shadow-sm hover:shadow-md">Register</a>
-                    </div>
+                    <!-- Mobile menu button -->
                     <button id="mobile-menu-button" class="md:hidden focus:outline-none">
-                        <svg class="h-6 w-6 fill-current" viewBox="0 0 24 24">
-                            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"></path>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
+                    
+                    <!-- User menu -->
+                    <div class="relative">
+                        <button id="user-menu-button" class="flex items-center space-x-2 focus:outline-none">
+                            <span id="user-email-display" class="text-sm font-medium hidden md:block">Guest</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <!-- User dropdown menu -->
+                        <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden">
+                            <div id="logged-in-menu" class="hidden">
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
+                                <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+                                <hr class="border-gray-200 dark:border-gray-700 my-1">
+                                <button id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    Logout
+                                </button>
+                            </div>
+                            <div id="logged-out-menu">
+                                <a href="/login" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Login</a>
+                                <a href="/register" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Sign Up</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div id="mobile-menu" class="md:hidden hidden mt-3 pb-2">
-                <a href="/checklists" class="block py-2 hover:text-indigo-200 hover:bg-white hover:bg-opacity-10 px-2 rounded">Checklist Tool</a>
-                <a href="/carpool" class="block py-2 hover:text-indigo-200 hover:bg-white hover:bg-opacity-10 px-2 rounded">Carpool Management</a>
-                <a href="/meals" class="block py-2 hover:text-indigo-200 hover:bg-white hover:bg-opacity-10 px-2 rounded">Meal Planning</a>
+            
+            <!-- Mobile menu -->
+            <div id="mobile-menu" class="hidden md:hidden mt-4">
+                <div class="flex flex-col space-y-2">
+                    <a href="/checklists" class="hover:text-slate-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Checklist Tool</a>
+                    <a href="/carpool" class="hover:text-slate-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Carpool Management</a>
+                    <a href="/meals" class="hover:text-slate-200 font-medium transition-colors px-2 py-1 rounded hover:bg-white hover:bg-opacity-10">Meal Planning</a>
+                </div>
             </div>
         </div>
     </nav>
-
-    <!-- Content -->
-    <main class="flex-grow container mx-auto px-4 py-6">
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- Footer -->
-    <footer class="border-t transition-colors">
-        <div class="container mx-auto px-4 py-4">
-            <p class="text-center text-gray-600 dark:text-gray-400 text-sm">
-                &copy; 2025 Family Management Solution. All rights reserved.
-            </p>
-        </div>
-    </footer>
-
-    <!-- Notification Container -->
-    <div id="notification-container" class="fixed bottom-4 right-4 z-50"></div>
-
-    <!-- Core JavaScript -->
-    <script defer src="{% if has_filter('static_url') %}{{ '/js/auth.js' | static_url }}{% else %}{{ url_for('static', path='/js/auth.js') }}{% endif %}"></script>
-    <script defer src="{% if has_filter('static_url') %}{{ '/js/app.js' | static_url }}{% else %}{{ url_for('static', path='/js/app.js') }}{% endif %}"></script>
     
     <!-- Mobile menu toggle -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Mobile menu toggle
             const mobileMenuButton = document.getElementById('mobile-menu-button');
-            if (mobileMenuButton) {
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton && mobileMenu) {
                 mobileMenuButton.addEventListener('click', function() {
-                    const mobileMenu = document.getElementById('mobile-menu');
-                    if (mobileMenu) {
-                        mobileMenu.classList.toggle('hidden');
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
+
+    <!-- Main content -->
+    <div class="flex-grow container mx-auto px-4 py-8">
+        <!-- Notification container for displaying messages -->
+        <div id="notification-container" class="fixed top-4 right-4 z-50 space-y-2 max-w-md"></div>
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Footer -->
+    <footer class="navbar-gradient text-white py-6 mt-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h3 class="text-lg font-semibold">Family Management Solution</h3>
+                    <p class="text-sm opacity-80">Simplifying family organization</p>
+                </div>
+                <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-6">
+                    <a href="/about" class="text-sm hover:text-slate-200 transition-colors">About</a>
+                    <a href="/contact" class="text-sm hover:text-slate-200 transition-colors">Contact</a>
+                    <a href="/privacy" class="text-sm hover:text-slate-200 transition-colors">Privacy Policy</a>
+                </div>
+            </div>
+            <div class="mt-4 text-center text-xs opacity-80">
+                &copy; 2025 Family Management Solution. All rights reserved.
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Common scripts -->
+    <script src="{% if has_filter('static_url') %}{{ '/js/app.js' | static_url }}{% else %}{{ url_for('static', path='/js/app.js') }}{% endif %}"></script>
+    <script src="{% if has_filter('static_url') %}{{ '/js/auth.js' | static_url }}{% else %}{{ url_for('static', path='/js/auth.js') }}{% endif %}"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update user email display and menu visibility
+            updateUserMenuState();
+            
+            // Setup user menu dropdown toggle
+            const userMenuButton = document.getElementById('user-menu-button');
+            const userDropdown = document.getElementById('user-dropdown');
+            
+            if (userMenuButton && userDropdown) {
+                userMenuButton.addEventListener('click', function() {
+                    userDropdown.classList.toggle('hidden');
+                });
+                
+                // Close dropdown when clicking elsewhere
+                document.addEventListener('click', function(event) {
+                    if (!userMenuButton.contains(event.target) && !userDropdown.contains(event.target)) {
+                        userDropdown.classList.add('hidden');
                     }
                 });
             }
             
-            // Theme toggle functionality will be initialized in app.js
+            // Setup logout functionality
+            const logoutButton = document.getElementById('logout-button');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', function() {
+                    // Clear authentication data
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('userEmail');
+                    
+                    // Redirect to homepage
+                    window.location.href = '/';
+                });
+            }
         });
+        
+        function updateUserMenuState() {
+            const userEmail = localStorage.getItem('userEmail');
+            const userEmailDisplay = document.getElementById('user-email-display');
+            const loggedInMenu = document.getElementById('logged-in-menu');
+            const loggedOutMenu = document.getElementById('logged-out-menu');
+            
+            if (userEmail) {
+                // User is logged in
+                if (userEmailDisplay) userEmailDisplay.textContent = userEmail;
+                if (loggedInMenu) loggedInMenu.classList.remove('hidden');
+                if (loggedOutMenu) loggedOutMenu.classList.add('hidden');
+            } else {
+                // User is logged out
+                if (userEmailDisplay) userEmailDisplay.textContent = 'Guest';
+                if (loggedInMenu) loggedInMenu.classList.add('hidden');
+                if (loggedOutMenu) loggedOutMenu.classList.remove('hidden');
+            }
+        }
     </script>
     
     {% block scripts %}{% endblock %}

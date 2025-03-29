@@ -22,8 +22,8 @@
         min-height: 100px;
     }
     .carpool-event {
-        background-color: rgba(16, 185, 129, 0.1);
-        border-left: 3px solid #10B981;
+        background-color: rgba(59, 130, 246, 0.1);
+        border-left: 3px solid #3b82f6;
     }
 </style>
 {% endblock %}
@@ -31,7 +31,7 @@
 {% block content %}
 <div class="container mx-auto px-4 py-6">
     <header class="mb-6">
-        <h1 class="text-3xl font-bold text-green-700">Carpool Management</h1>
+        <h1 class="text-3xl font-bold text-blue-700">Carpool Management</h1>
         <p class="text-gray-600">Manage and organize carpool schedules for your family.</p>
     </header>
 
@@ -40,27 +40,27 @@
         <div class="w-full">
             <div class="bg-white rounded-lg shadow-md p-6">
                 <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-                    <h2 class="text-xl font-semibold text-green-600 mb-3 md:mb-0">Upcoming Events</h2>
+                    <h2 class="text-xl font-semibold text-blue-600 mb-3 md:mb-0">Upcoming Events</h2>
                     
                     <div class="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-2">
                         <div class="flex">
                             <input type="text" id="search-events" placeholder="Search events..." 
-                                class="px-3 py-2 border border-gray-300 rounded-l-md">
-                            <button id="search-btn" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-r-md">
+                                class="px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-l-md">
+                            <button id="search-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-md">
                                 Search
                             </button>
                         </div>
                         
                         <div class="flex">
-                            <button id="view-list-btn" class="bg-green-600 text-white px-4 py-2 rounded-l-md">
+                            <button id="view-list-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-l-md">
                                 List
                             </button>
-                            <button id="view-calendar-btn" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-r-md">
+                            <button id="view-calendar-btn" class="bg-blue-600 hover:bg-blue-700 text-white opacity-75 px-4 py-2 rounded-r-md">
                                 Calendar
                             </button>
                         </div>
                         
-                        <button id="create-event-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center">
+                        <button id="create-event-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                             </svg>
@@ -83,11 +83,11 @@
                 
                 <div id="calendar-view" class="hidden">
                     <div class="mb-4 flex justify-between items-center">
-                        <button id="prev-month" class="text-green-600 hover:text-green-800">
+                        <button id="prev-month" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                             &larr; Previous Month
                         </button>
                         <h3 id="current-month" class="text-lg font-medium text-gray-700"></h3>
-                        <button id="next-month" class="text-green-600 hover:text-green-800">
+                        <button id="next-month" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                             Next Month &rarr;
                         </button>
                     </div>
@@ -116,8 +116,8 @@
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto">
         <div class="p-6">
             <div class="flex justify-between items-start">
-                <h3 id="modal-event-description" class="text-xl font-bold text-green-700"></h3>
-                <button class="text-gray-400 hover:text-gray-600" data-modal-close>
+                <h3 id="modal-event-description" class="text-xl font-bold text-blue-700"></h3>
+                <button class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-200" data-modal-close>
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -140,13 +140,13 @@
             </div>
             
             <div class="mt-6 flex justify-end space-x-2">
-                <button id="modal-delete-btn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                <button id="modal-delete-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                     Delete
                 </button>
-                <button id="modal-edit-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                <button id="modal-edit-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                     Edit
                 </button>
-                <button data-modal-close class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded">
+                <button data-modal-close class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                     Close
                 </button>
             </div>
@@ -158,8 +158,8 @@
 <div id="create-event-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
     <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
         <div class="flex justify-between items-center border-b pb-3">
-            <h3 id="event-modal-title" class="text-xl font-medium text-green-700">Create New Event</h3>
-            <button id="close-event-modal" class="text-gray-400 hover:text-gray-500">
+            <h3 id="event-modal-title" class="text-xl font-medium text-blue-700">Create New Event</h3>
+            <button id="close-event-modal" class="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -168,34 +168,34 @@
         
         <form id="new-event-form" class="mt-4 space-y-4">
             <div>
-                <label for="event-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label for="event-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                 <input type="text" id="event-description" name="description" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md">
             </div>
             
             <div>
-                <label for="event-destination" class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                <label for="event-destination" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Destination</label>
                 <input type="text" id="event-destination" name="destination" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md">
             </div>
             
             <div>
-                <label for="event-date" class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                <label for="event-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date & Time</label>
                 <input type="datetime-local" id="event-date" name="drop_off_time" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md">
             </div>
             
             <div>
-                <label for="event-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                <label for="event-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (Optional)</label>
                 <textarea id="event-notes" name="notes" rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-md"></textarea>
             </div>
             
             <div class="flex justify-end mt-6 space-x-3">
-                <button type="button" id="cancel-event" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
+                <button type="button" id="cancel-event" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                     Cancel
                 </button>
-                <button type="submit" id="save-event" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                <button type="submit" id="save-event" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                     Create Event
                 </button>
             </div>
@@ -211,22 +211,20 @@ if (!window.auth) {
     console.log('Creating fallback auth implementation');
     window.auth = {
         apiRequest: async function(url, options = {}) {
+            const token = localStorage.getItem('accessToken');
+            
             const defaultOptions = {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
-                },
-                credentials: 'include' // Change from 'same-origin' to 'include' for cross-site cookie support
+                }
             };
             
             const fetchOptions = { ...defaultOptions, ...options };
             
-            // Add CSRF token if needed for non-GET requests
-            if (fetchOptions.method !== 'GET') {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                if (csrfToken) {
-                    fetchOptions.headers['X-CSRFToken'] = csrfToken;
-                }
+            // Add authorization token if available
+            if (token) {
+                fetchOptions.headers['Authorization'] = `Bearer ${token}`;
             }
             
             try {
@@ -344,6 +342,15 @@ if (!window.app) {
 // Delay initialization to ensure scripts are loaded
 setTimeout(function() {
     document.addEventListener('DOMContentLoaded', function() {
+        // Check if the user is authenticated first
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            // Store current page for redirect after login
+            localStorage.setItem('redirectAfterLogin', window.location.pathname);
+            window.location.href = '/login';
+            return;
+        }
+        
         // Set datetime-local input to today at next hour
         setDefaultEventTime();
         
@@ -355,6 +362,15 @@ setTimeout(function() {
 
     // If DOM is already loaded, run initialization
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        // Check authentication first
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            // Store current page for redirect after login
+            localStorage.setItem('redirectAfterLogin', window.location.pathname);
+            window.location.href = '/login';
+            return;
+        }
+        
         setDefaultEventTime();
         loadEvents();
         setupEventListeners();
@@ -388,19 +404,28 @@ function setupEventListeners() {
         listViewBtn.addEventListener('click', function() {
             document.getElementById('list-view').classList.remove('hidden');
             document.getElementById('calendar-view').classList.add('hidden');
-            listViewBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
-            listViewBtn.classList.add('bg-green-600', 'text-white');
-            calendarViewBtn.classList.remove('bg-green-600', 'text-white');
-            calendarViewBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+            
+            // Update List button - active
+            listViewBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'dark:bg-gray-600', 'dark:hover:bg-gray-500', 'dark:text-white');
+            listViewBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+            
+            // Update Calendar button - inactive
+            calendarViewBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+            calendarViewBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white', 'opacity-75');
         });
         
         calendarViewBtn.addEventListener('click', function() {
             document.getElementById('list-view').classList.add('hidden');
             document.getElementById('calendar-view').classList.remove('hidden');
-            calendarViewBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
-            calendarViewBtn.classList.add('bg-green-600', 'text-white');
-            listViewBtn.classList.remove('bg-green-600', 'text-white');
-            listViewBtn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+            
+            // Update Calendar button - active
+            calendarViewBtn.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'dark:bg-gray-600', 'dark:hover:bg-gray-500', 'dark:text-white', 'opacity-75');
+            calendarViewBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+            
+            // Update List button - inactive
+            listViewBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+            listViewBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white', 'opacity-75');
+            
             renderCalendar();
         });
     }
@@ -491,7 +516,7 @@ function renderCalendar() {
         // Check if this is today
         const today = new Date();
         if (today.getDate() === day && today.getMonth() === calendarState.month && today.getFullYear() === calendarState.year) {
-            cell.classList.add('bg-green-50', 'border-green-300');
+            cell.classList.add('bg-blue-50', 'border-blue-300');
         }
         
         const dayNumber = document.createElement('div');
@@ -619,8 +644,8 @@ function renderEvents(events) {
         
         card.innerHTML = `
             <div class="flex justify-between items-start">
-                <h3 class="text-lg font-semibold text-green-700">${event.description}</h3>
-                <span class="text-sm text-white bg-green-600 py-1 px-2 rounded-full">${formattedTime}</span>
+                <h3 class="text-lg font-semibold text-blue-700">${event.description}</h3>
+                <span class="text-sm text-white bg-blue-600 py-1 px-2 rounded-full">${formattedTime}</span>
             </div>
             <div class="mt-2">
                 <p class="text-sm text-gray-600"><strong>Destination:</strong> ${event.destination}</p>
@@ -628,7 +653,7 @@ function renderEvents(events) {
                 ${event.notes ? `<p class="mt-2 text-sm text-gray-600 line-clamp-2"><strong>Notes:</strong> ${event.notes}</p>` : ''}
             </div>
             <div class="mt-3 flex justify-end">
-                <button class="view-event-btn text-green-600 hover:text-green-800 text-sm">
+                <button class="view-event-btn text-blue-600 hover:text-blue-800 text-sm">
                     View Details
                 </button>
             </div>

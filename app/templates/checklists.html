@@ -74,7 +74,7 @@
     <div id="checklist-run-history" class="mt-12 hidden">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-bold text-blue-700">Checklist Run History</h2>
-            <button id="history-back-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded">
+            <button id="history-back-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                 Back to Checklists
             </button>
         </div>
@@ -93,7 +93,7 @@
                 </svg>
                 <h2 class="mt-2 text-lg font-medium text-gray-900">No checklist runs found</h2>
                 <p class="mt-1 text-gray-600">This checklist hasn't been run yet.</p>
-                <button id="no-history-run-btn" class="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                <button id="no-history-run-btn" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
                     Run Checklist Now
                 </button>
             </div>
@@ -214,304 +214,47 @@
 
 {% block scripts %}
 <script>
-    // Fallback implementation of auth API in case the main script fails to load
-    // This ensures the checklist functionality works even if auth.js has loading issues
-    if (!window.auth) {
-        console.warn('Auth API not detected, using fallback implementation');
-        window.auth = {
-            getAuthHeaders: function() {
-                const token = localStorage.getItem('accessToken');
-                return {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                };
-            },
-            apiRequest: async function(url, options = {}) {
-                const token = localStorage.getItem('accessToken');
-                
-                if (!token) {
-                    window.location.href = '/login';
-                    return;
-                }
-                
-                // Set default headers
-                const headers = options.headers || {};
-                headers['Authorization'] = `Bearer ${token}`;
-                headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-                
-                // Make the URL relative to avoid protocol issues
-                if (url.startsWith('http')) {
-                    console.warn('Using absolute URL in API request, converting to relative');
-                    try {
-                        const urlObj = new URL(url);
-                        url = urlObj.pathname + urlObj.search;
-                    } catch (e) {
-                        console.error('Failed to parse URL', e);
-                    }
-                }
-                
-                if (!url.startsWith('/')) {
-                    url = '/' + url;
-                }
-                
-                try {
-                    console.log('Making API request to:', url);
-                    const response = await fetch(url, {
-                        ...options,
-                        headers
-                    });
-                    
-                    if (response.status === 401) {
-                        // Unauthorized, token might be invalid
-                        localStorage.removeItem('accessToken');
-                        localStorage.removeItem('userEmail');
-                        window.location.href = '/login';
-                        return;
-                    }
-                    
-                    return response;
-                } catch (error) {
-                    console.error('API request error:', error);
-                    throw error;
-                }
-            },
-            logout: function() {
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('userEmail');
-                window.location.href = '/login';
-            }
-        };
+// Check for authentication first before initializing
+document.addEventListener('DOMContentLoaded', function() {
+    // Check authentication before doing anything
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+        console.warn('Authentication required. Redirecting to login page...');
+        localStorage.setItem('redirectAfterLogin', window.location.pathname);
+        window.location.href = '/login';
+        return;
     }
+    
+    // If we have a token, proceed with initialization
+    initChecklists();
+});
 
-    // Similarly for app utility if not available
-    if (!window.app) {
-        console.warn('App API not detected, using fallback implementation');
-        window.app = {
-            showNotification: function(message, type = 'info') {
-                console.log(`${type.toUpperCase()}: ${message}`);
-                alert(message);
-            },
-            formatDate: function(date) {
-                return new Date(date).toLocaleDateString();
-            }
-        };
-    }
+// Initialize checklist functionality
+function initChecklists() {
+    // DOM elements
+    const checklistsGrid = document.getElementById('checklists-grid');
+    const loadingIndicator = document.getElementById('loading');
+    const noChecklistsMessage = document.getElementById('no-checklists');
+    const createButton = document.getElementById('create-checklist-btn');
+    const noChecklistsCreateButton = document.getElementById('no-checklists-create-btn');
+    const modal = document.getElementById('checklist-modal');
+    const closeModal = document.getElementById('close-modal');
+    const cancelButton = document.getElementById('cancel-checklist');
+    const checklistForm = document.getElementById('checklist-form');
+    const addItemButton = document.getElementById('add-item');
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Check if user is logged in
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-            window.location.href = '/login';
-            return;
-        }
-
-        // DOM elements
-        const checklistsGrid = document.getElementById('checklists-grid');
-        const loadingIndicator = document.getElementById('loading');
-        const noChecklistsMessage = document.getElementById('no-checklists');
-        const createButton = document.getElementById('create-checklist-btn');
-        const noChecklistsCreateButton = document.getElementById('no-checklists-create-btn');
-        const modal = document.getElementById('checklist-modal');
-        const closeModal = document.getElementById('close-modal');
-        const cancelButton = document.getElementById('cancel-checklist');
-        const checklistForm = document.getElementById('checklist-form');
-        const addItemButton = document.getElementById('add-item');
-
-        // Event listeners
-        createButton.addEventListener('click', openCreateModal);
-        noChecklistsCreateButton.addEventListener('click', openCreateModal);
-        closeModal.addEventListener('click', closeChecklistModal);
-        cancelButton.addEventListener('click', closeChecklistModal);
-        addItemButton.addEventListener('click', addItemField);
-        checklistForm.addEventListener('submit', saveChecklist);
-
-        // Initial load - but with a slight delay to ensure scripts are loaded
-        setTimeout(fetchChecklists, 100);
-
-        // Functions
-        async function fetchChecklists() {
-            showLoading(true);
-            
-            try {
-                // Double check auth is available even after timeout
-                if (!window.auth || typeof window.auth.apiRequest !== 'function') {
-                    throw new Error('Authentication API not available. Try refreshing the page.');
-                }
-                
-                const response = await window.auth.apiRequest('/checklists/');
-                if (response.ok) {
-                    const checklists = await response.json();
-                    await loadInProgressRuns(checklists);
-                    renderChecklists(checklists);
-                } else {
-                    throw new Error('Failed to fetch checklists');
-                }
-            } catch (error) {
-                console.error('Error fetching checklists:', error);
-                if (window.app && typeof window.app.showNotification === 'function') {
-                    window.app.showNotification('Failed to load checklists: ' + error.message, 'error');
-                } else {
-                    alert('Failed to load checklists: ' + error.message);
-                }
-            } finally {
-                showLoading(false);
-            }
-        }
+    // Define functions that will be used in event listeners
+    function openCreateModal() {
+        console.log('Opening create checklist modal');
+        // Reset form
+        checklistForm.reset();
+        document.getElementById('checklist-id').value = '';
+        document.getElementById('modal-title').textContent = 'Create New Checklist';
         
-        // Function to load in-progress runs for each checklist
-        async function loadInProgressRuns(checklists) {
-            // For each checklist, check if there are any in-progress runs
-            for (const checklist of checklists) {
-                try {
-                    const response = await window.auth.apiRequest(`/checklists/${checklist.id}/runs`);
-                    if (response.ok) {
-                        const runs = await response.json();
-                        // Filter to only in-progress runs (runs with no completed_at date)
-                        const inProgressRuns = runs.filter(run => !run.completed_at);
-                        
-                        if (inProgressRuns.length > 0) {
-                            // Sort by started_at in descending order to get the latest
-                            inProgressRuns.sort((a, b) => 
-                                new Date(b.started_at) - new Date(a.started_at)
-                            );
-                            
-                            // Attach the latest in-progress run to the checklist object
-                            checklist.latestInProgressRun = inProgressRuns[0];
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error fetching runs for checklist ${checklist.id}:`, error);
-                }
-            }
-            
-            return checklists;
-        }
-
-        function renderChecklists(checklists) {
-            if (checklists.length === 0) {
-                noChecklistsMessage.classList.remove('hidden');
-                checklistsGrid.classList.add('hidden');
-                return;
-            }
-            
-            noChecklistsMessage.classList.add('hidden');
-            checklistsGrid.classList.remove('hidden');
-            
-            // Clear grid
-            checklistsGrid.innerHTML = '';
-            
-            // Add checklist cards
-            checklists.forEach(checklist => {
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-lg shadow-md p-5 checklist-card border-t-4 border-blue-500';
-                
-                // Required items count
-                const requiredItems = checklist.items.filter(item => item.is_required).length;
-                const totalItems = checklist.items.length;
-                
-                card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <h3 class="text-lg font-semibold text-gray-800">${checklist.title}</h3>
-                        <span class="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-800">${checklist.category || 'Uncategorized'}</span>
-                    </div>
-                    <p class="text-sm text-gray-600 mt-2">${totalItems} items (${requiredItems} required)</p>
-                    <div class="mt-4 flex justify-between items-center">
-                        <div class="space-x-1">
-                            <button class="edit-checklist text-blue-600 hover:text-blue-800" data-id="${checklist.id}">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                            </button>
-                            <button class="delete-checklist text-red-600 hover:text-red-800" data-id="${checklist.id}">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="space-x-2">
-                            <button class="view-history bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm" data-id="${checklist.id}">
-                                View History
-                            </button>
-                            ${checklist.latestInProgressRun ? `
-                            <button class="continue-checklist bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm" data-id="${checklist.id}" data-run-id="${checklist.latestInProgressRun.id}">
-                                Continue
-                            </button>
-                            ` : ''}
-                            <button class="run-checklist bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm" data-id="${checklist.id}">
-                                Run Checklist
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                checklistsGrid.appendChild(card);
-                
-                // Add event listeners for the buttons
-                card.querySelector('.edit-checklist').addEventListener('click', () => editChecklist(checklist.id));
-                card.querySelector('.delete-checklist').addEventListener('click', () => deleteChecklist(checklist.id));
-                card.querySelector('.run-checklist').addEventListener('click', () => runChecklist(checklist.id));
-                card.querySelector('.view-history').addEventListener('click', () => viewChecklistHistory(checklist.id));
-                
-                // Add event listener for Continue button if it exists
-                const continueButton = card.querySelector('.continue-checklist');
-                if (continueButton) {
-                    continueButton.addEventListener('click', () => {
-                        const runId = continueButton.dataset.runId;
-                        continueChecklistRun(checklist.id, runId);
-                    });
-                }
-            });
-        }
-
-        function showLoading(show) {
-            if (show) {
-                loadingIndicator.classList.remove('hidden');
-                checklistsGrid.classList.add('hidden');
-                noChecklistsMessage.classList.add('hidden');
-            } else {
-                loadingIndicator.classList.add('hidden');
-            }
-        }
-
-        function openCreateModal() {
-            // Reset form
-            checklistForm.reset();
-            document.getElementById('checklist-id').value = '';
-            document.getElementById('modal-title').textContent = 'Create New Checklist';
-            
-            // Clear items except for one empty item
-            const itemsContainer = document.getElementById('checklist-items');
-            itemsContainer.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <input type="text" name="item-text" class="flex-grow px-3 py-2 border border-gray-300 rounded-md" placeholder="Item text" required>
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="item-required" class="form-checkbox" checked>
-                        <span class="ml-2 text-sm text-gray-700">Required</span>
-                    </label>
-                    <button type="button" class="remove-item text-red-500 hover:text-red-700">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </button>
-                </div>
-            `;
-            
-            // Add event listener for remove button
-            addRemoveItemListeners();
-            
-            // Show modal
-            modal.classList.remove('hidden');
-        }
-
-        function closeChecklistModal() {
-            modal.classList.add('hidden');
-        }
-
-        function addItemField() {
-            const itemsContainer = document.getElementById('checklist-items');
-            const newItem = document.createElement('div');
-            newItem.className = 'flex items-center space-x-2';
-            newItem.innerHTML = `
+        // Clear items except for one empty item
+        const itemsContainer = document.getElementById('checklist-items');
+        itemsContainer.innerHTML = `
+            <div class="flex items-center space-x-2">
                 <input type="text" name="item-text" class="flex-grow px-3 py-2 border border-gray-300 rounded-md" placeholder="Item text" required>
                 <label class="inline-flex items-center">
                     <input type="checkbox" name="item-required" class="form-checkbox" checked>
@@ -522,833 +265,931 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
                 </button>
-            `;
-            
-            itemsContainer.appendChild(newItem);
-            
-            // Add event listener for remove button
-            addRemoveItemListeners();
-            
-            // Focus on the new item
-            newItem.querySelector('input[name="item-text"]').focus();
-        }
+            </div>
+        `;
+        
+        // Add event listener for remove button
+        addRemoveItemListeners();
+        
+        // Show modal
+        modal.classList.remove('hidden');
+    }
 
-        function addRemoveItemListeners() {
-            document.querySelectorAll('.remove-item').forEach(button => {
-                button.addEventListener('click', function() {
-                    // Don't remove if it's the last item
-                    const items = document.querySelectorAll('#checklist-items > div');
-                    if (items.length > 1) {
-                        this.parentElement.remove();
-                    }
+    function closeChecklistModal() {
+        modal.classList.add('hidden');
+    }
+
+    function addItemField() {
+        const itemsContainer = document.getElementById('checklist-items');
+        const newItem = document.createElement('div');
+        newItem.className = 'flex items-center space-x-2';
+        newItem.innerHTML = `
+            <input type="text" name="item-text" class="flex-grow px-3 py-2 border border-gray-300 rounded-md" placeholder="Item text" required>
+            <label class="inline-flex items-center">
+                <input type="checkbox" name="item-required" class="form-checkbox" checked>
+                <span class="ml-2 text-sm text-gray-700">Required</span>
+            </label>
+            <button type="button" class="remove-item text-red-500 hover:text-red-700">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        `;
+        
+        itemsContainer.appendChild(newItem);
+        
+        // Add event listener for remove button
+        addRemoveItemListeners();
+        
+        // Focus on the new item
+        newItem.querySelector('input[name="item-text"]').focus();
+    }
+
+    function addRemoveItemListeners() {
+        document.querySelectorAll('.remove-item').forEach(button => {
+            button.addEventListener('click', function() {
+                // Don't remove if it's the last item
+                const items = document.querySelectorAll('#checklist-items > div');
+                if (items.length > 1) {
+                    this.parentElement.remove();
+                }
+            });
+        });
+    }
+
+    function saveChecklist(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const checklistId = document.getElementById('checklist-id').value;
+        const title = document.getElementById('checklist-title').value;
+        const category = document.getElementById('checklist-category').value;
+        
+        // Get items
+        const items = [];
+        document.querySelectorAll('#checklist-items > div').forEach(itemDiv => {
+            const text = itemDiv.querySelector('input[name="item-text"]').value;
+            const isRequired = itemDiv.querySelector('input[name="item-required"]').checked;
+            
+            if (text.trim()) {
+                items.push({
+                    text: text,
+                    is_required: isRequired
                 });
-            });
-        }
+            }
+        });
+        
+        // Prepare data
+        const data = {
+            title: title,
+            category: category || null,
+            items: items
+        };
+        
+        // Determine if creating or updating
+        const isCreating = !checklistId;
+        const url = isCreating ? '/checklists/' : `/checklists/${checklistId}`;
+        const method = isCreating ? 'POST' : 'PUT';
+        
+        // Send request
+        window.auth.apiRequest(url, {
+            method: method,
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Failed to save checklist');
+        })
+        .then(data => {
+            window.app.showNotification(
+                isCreating ? 'Checklist created successfully' : 'Checklist updated successfully',
+                'success'
+            );
+            
+            closeChecklistModal();
+            fetchChecklists();
+        })
+        .catch(error => {
+            console.error('Error saving checklist:', error);
+            window.app.showNotification('Failed to save checklist: ' + error.message, 'error');
+        });
+    }
 
-        function saveChecklist(e) {
-            e.preventDefault();
-            
-            // Get form data
-            const checklistId = document.getElementById('checklist-id').value;
-            const title = document.getElementById('checklist-title').value;
-            const category = document.getElementById('checklist-category').value;
-            
-            // Get items
-            const items = [];
-            document.querySelectorAll('#checklist-items > div').forEach(itemDiv => {
-                const text = itemDiv.querySelector('input[name="item-text"]').value;
-                const isRequired = itemDiv.querySelector('input[name="item-required"]').checked;
-                
-                if (text.trim()) {
-                    items.push({
-                        text: text,
-                        is_required: isRequired
-                    });
-                }
-            });
-            
-            // Prepare data
-            const data = {
-                title: title,
-                category: category || null,
-                items: items
-            };
-            
-            // Determine if creating or updating
-            const isCreating = !checklistId;
-            const url = isCreating ? '/checklists/' : `/checklists/${checklistId}`;
-            const method = isCreating ? 'POST' : 'PUT';
-            
-            // Send request
-            window.auth.apiRequest(url, {
-                method: method,
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Failed to save checklist');
-            })
-            .then(data => {
-                window.app.showNotification(
-                    isCreating ? 'Checklist created successfully' : 'Checklist updated successfully',
-                    'success'
-                );
-                closeChecklistModal();
-                fetchChecklists();
-            })
-            .catch(error => {
-                console.error('Error saving checklist:', error);
-                window.app.showNotification('Failed to save checklist', 'error');
-            });
-        }
+    // Event listeners
+    if (createButton) {
+        console.log('Setting up create button click handler');
+        createButton.addEventListener('click', openCreateModal);
+    } else {
+        console.error('Create button not found');
+    }
+    
+    if (noChecklistsCreateButton) {
+        noChecklistsCreateButton.addEventListener('click', openCreateModal);
+    }
+    
+    if (closeModal) {
+        closeModal.addEventListener('click', closeChecklistModal);
+    }
+    
+    if (cancelButton) {
+        cancelButton.addEventListener('click', closeChecklistModal);
+    }
+    
+    if (addItemButton) {
+        addItemButton.addEventListener('click', addItemField);
+    }
+    
+    if (checklistForm) {
+        checklistForm.addEventListener('submit', saveChecklist);
+    }
 
-        function editChecklist(checklistId) {
-            // Fetch checklist data
-            window.auth.apiRequest(`/checklists/${checklistId}`)
-            .then(response => {
+    // Initial load
+    fetchChecklists();
+
+    // Functions to fetch and render checklists
+    async function fetchChecklists() {
+        showLoading(true);
+        
+        try {
+            // Double check auth is available even after timeout
+            if (!window.auth || typeof window.auth.apiRequest !== 'function') {
+                throw new Error('Authentication API not available. Try refreshing the page.');
+            }
+            
+            const response = await window.auth.apiRequest('/checklists/');
+            if (response.ok) {
+                const checklists = await response.json();
+                await loadInProgressRuns(checklists);
+                renderChecklists(checklists);
+            } else {
+                throw new Error('Failed to fetch checklists');
+            }
+        } catch (error) {
+            console.error('Error fetching checklists:', error);
+            if (window.app && typeof window.app.showNotification === 'function') {
+                window.app.showNotification('Failed to load checklists: ' + error.message, 'error');
+            } else {
+                alert('Failed to load checklists: ' + error.message);
+            }
+        } finally {
+            showLoading(false);
+        }
+    }
+    
+    // Function to load in-progress runs for each checklist
+    async function loadInProgressRuns(checklists) {
+        // For each checklist, check if there are any in-progress runs
+        for (const checklist of checklists) {
+            try {
+                const response = await window.auth.apiRequest(`/checklists/${checklist.id}/runs`);
                 if (response.ok) {
-                    return response.json();
+                    const runs = await response.json();
+                    // Filter to only in-progress runs (runs with no completed_at date)
+                    const inProgressRuns = runs.filter(run => !run.completed_at);
+                    
+                    if (inProgressRuns.length > 0) {
+                        // Sort by started_at in descending order to get the latest
+                        inProgressRuns.sort((a, b) => 
+                            new Date(b.started_at) - new Date(a.started_at)
+                        );
+                        
+                        // Attach the latest in-progress run to the checklist object
+                        checklist.latestInProgressRun = inProgressRuns[0];
+                    }
                 }
-                throw new Error('Failed to fetch checklist details');
-            })
-            .then(checklist => {
-                // Populate form
-                document.getElementById('checklist-id').value = checklist.id;
-                document.getElementById('checklist-title').value = checklist.title;
-                document.getElementById('checklist-category').value = checklist.category || '';
-                document.getElementById('modal-title').textContent = 'Edit Checklist';
-                
-                // Populate items
-                const itemsContainer = document.getElementById('checklist-items');
-                itemsContainer.innerHTML = '';
-                
-                checklist.items.forEach(item => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'flex items-center space-x-2';
-                    itemDiv.innerHTML = `
-                        <input type="text" name="item-text" class="flex-grow px-3 py-2 border border-gray-300 rounded-md" placeholder="Item text" value="${item.text}" required>
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" name="item-required" class="form-checkbox" ${item.is_required ? 'checked' : ''}>
-                            <span class="ml-2 text-sm text-gray-700">Required</span>
-                        </label>
-                        <button type="button" class="remove-item text-red-500 hover:text-red-700">
+            } catch (error) {
+                console.error(`Error fetching runs for checklist ${checklist.id}:`, error);
+            }
+        }
+        
+        return checklists;
+    }
+
+    function renderChecklists(checklists) {
+        if (checklists.length === 0) {
+            noChecklistsMessage.classList.remove('hidden');
+            checklistsGrid.classList.add('hidden');
+            return;
+        }
+        
+        noChecklistsMessage.classList.add('hidden');
+        checklistsGrid.classList.remove('hidden');
+        
+        // Clear grid
+        checklistsGrid.innerHTML = '';
+        
+        // Add checklist cards
+        checklists.forEach(checklist => {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-lg shadow-md p-5 checklist-card border-t-4 border-blue-500';
+            
+            // Required items count
+            const requiredItems = checklist.items.filter(item => item.is_required).length;
+            const totalItems = checklist.items.length;
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <h3 class="text-lg font-semibold text-gray-800">${checklist.title}</h3>
+                    <span class="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-800">${checklist.category || 'Uncategorized'}</span>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">${totalItems} items (${requiredItems} required)</p>
+                <div class="mt-4 flex justify-between items-center">
+                    <div class="space-x-1">
+                        <button class="edit-checklist text-blue-600 hover:text-blue-800" data-id="${checklist.id}">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>
+                        <button class="delete-checklist text-red-600 hover:text-red-800" data-id="${checklist.id}">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                         </button>
-                    `;
-                    
-                    itemsContainer.appendChild(itemDiv);
-                });
-                
-                // Add event listeners for remove buttons
-                addRemoveItemListeners();
-                
-                // Show modal
-                modal.classList.remove('hidden');
-            })
-            .catch(error => {
-                console.error('Error fetching checklist details:', error);
-                window.app.showNotification('Failed to fetch checklist details', 'error');
-            });
-        }
-
-        function deleteChecklist(checklistId) {
-            if (confirm('Are you sure you want to delete this checklist? This action cannot be undone.')) {
-                window.auth.apiRequest(`/checklists/${checklistId}`, {
-                    method: 'DELETE'
-                })
-                .then(response => {
-                    if (response.ok) {
-                        window.app.showNotification('Checklist deleted successfully', 'success');
-                        fetchChecklists();
-                    } else {
-                        throw new Error('Failed to delete checklist');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting checklist:', error);
-                    window.app.showNotification('Failed to delete checklist', 'error');
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <button class="view-history bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-sm mb-2" data-id="${checklist.id}">
+                            View History
+                        </button>
+                        ${checklist.latestInProgressRun ? `
+                        <button class="continue-checklist bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mb-2" data-id="${checklist.id}" data-run-id="${checklist.latestInProgressRun.id}">
+                            Continue
+                        </button>
+                        ` : ''}
+                        <button class="run-checklist bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mb-2" data-id="${checklist.id}">
+                            Run Checklist
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            checklistsGrid.appendChild(card);
+            
+            // Add event listeners for the buttons
+            card.querySelector('.edit-checklist').addEventListener('click', () => editChecklist(checklist.id));
+            card.querySelector('.delete-checklist').addEventListener('click', () => deleteChecklist(checklist.id));
+            card.querySelector('.run-checklist').addEventListener('click', () => runChecklist(checklist.id));
+            card.querySelector('.view-history').addEventListener('click', () => viewChecklistHistory(checklist.id));
+            
+            // Add event listener for Continue button if it exists
+            const continueButton = card.querySelector('.continue-checklist');
+            if (continueButton) {
+                continueButton.addEventListener('click', () => {
+                    const runId = continueButton.dataset.runId;
+                    continueChecklistRun(checklist.id, runId);
                 });
             }
-        }
+        });
+    }
 
-        function runChecklist(checklistId) {
-            // Get checklist data
-            window.auth.apiRequest(`/checklists/${checklistId}`)
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
+    function showLoading(show) {
+        if (show) {
+            loadingIndicator.classList.remove('hidden');
+            checklistsGrid.classList.add('hidden');
+            noChecklistsMessage.classList.add('hidden');
+        } else {
+            loadingIndicator.classList.add('hidden');
+        }
+    }
+
+    // Action handler functions for checklist buttons
+    
+    async function editChecklist(checklistId) {
+        try {
+            // Show loading
+            showLoading(true);
+            
+            // Fetch the checklist details
+            const response = await window.auth.apiRequest(`/checklists/${checklistId}`);
+            
+            if (!response.ok) {
                 throw new Error('Failed to fetch checklist details');
-            })
-            .then(checklist => {
-                // Start a new checklist run
-                return window.auth.apiRequest('/checklists/runs', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        checklist_id: checklistId
-                    })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Failed to start checklist run');
-                })
-                .then(runData => {
-                    // Return both checklist and run data
-                    return { checklist, runData };
-                });
-            })
-            .then(data => {
-                // Set modal title
-                document.getElementById('run-modal-title').textContent = `Run Checklist: ${data.checklist.title}`;
-                
-                // Build the checklist content
-                const contentDiv = document.getElementById('run-checklist-content');
-                contentDiv.innerHTML = '';
-                
-                // Create the form for checklist items
-                const form = document.createElement('form');
-                form.id = 'run-checklist-form';
-                form.dataset.runId = data.runData.id;
-                form.dataset.checklistId = data.checklist.id;
-                
-                // Create a div for checklist items
-                const itemsDiv = document.createElement('div');
-                itemsDiv.className = 'space-y-4 mb-6';
-                
-                // Add each checklist item
-                data.checklist.items.forEach(item => {
-                    // Find the corresponding run item
-                    const runItem = data.runData.run_items.find(ri => ri.item_id === item.id);
-                    if (!runItem) return;
-                    
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'flex items-start space-x-3 p-3 border rounded-lg ' + 
-                                        (item.is_required ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50');
-                    
-                    // Create checkbox
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'mt-1 h-5 w-5 text-blue-600 focus:ring-blue-500';
-                    checkbox.dataset.itemId = item.id;
-                    checkbox.dataset.runItemId = runItem.id;
-                    checkbox.checked = runItem.completed;
-                    checkbox.addEventListener('change', function() {
-                        updateRunItem(data.runData.id, item.id, this.checked);
-                    });
-                    
-                    const labelDiv = document.createElement('div');
-                    labelDiv.className = 'flex-1';
-                    
-                    // Create item text
-                    const itemText = document.createElement('label');
-                    itemText.className = 'block font-medium text-gray-700';
-                    itemText.textContent = item.text;
-                    if (item.is_required) {
-                        const requiredSpan = document.createElement('span');
-                        requiredSpan.className = 'ml-1 text-red-500';
-                        requiredSpan.textContent = '*';
-                        itemText.appendChild(requiredSpan);
-                    }
-                    
-                    // Create notes input
-                    const notesInput = document.createElement('input');
-                    notesInput.type = 'text';
-                    notesInput.className = 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
-                    notesInput.placeholder = 'Add notes (optional)';
-                    notesInput.dataset.itemId = item.id;
-                    notesInput.value = runItem.notes || '';
-                    notesInput.addEventListener('blur', function() {
-                        updateRunItemNotes(data.runData.id, item.id, this.value);
-                    });
-                    
-                    // Add everything to the DOM
-                    labelDiv.appendChild(itemText);
-                    labelDiv.appendChild(notesInput);
-                    itemDiv.appendChild(checkbox);
-                    itemDiv.appendChild(labelDiv);
-                    itemsDiv.appendChild(itemDiv);
-                });
-                
-                form.appendChild(itemsDiv);
-                
-                // Add Complete button
-                const buttonDiv = document.createElement('div');
-                buttonDiv.className = 'flex justify-between border-t pt-4';
-                
-                const cancelButton = document.createElement('button');
-                cancelButton.type = 'button';
-                cancelButton.className = 'px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100';
-                cancelButton.textContent = 'Cancel';
-                cancelButton.addEventListener('click', () => {
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                });
-                
-                const continueLaterButton = document.createElement('button');
-                continueLaterButton.type = 'button';
-                continueLaterButton.className = 'px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700';
-                continueLaterButton.textContent = 'Continue Later';
-                continueLaterButton.addEventListener('click', () => {
-                    // Simply close the modal but keep the run in progress
-                    window.app.showNotification('Progress saved. You can continue this checklist later.', 'success');
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                    fetchChecklists(); // Refresh the checklists view
-                });
-                
-                const completeButton = document.createElement('button');
-                completeButton.type = 'button';
-                completeButton.className = 'px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700';
-                completeButton.textContent = 'Complete Checklist';
-                completeButton.addEventListener('click', () => {
-                    completeChecklistRun(data.runData.id);
-                });
-                
-                buttonDiv.appendChild(cancelButton);
-                buttonDiv.appendChild(continueLaterButton);
-                buttonDiv.appendChild(completeButton);
-                form.appendChild(buttonDiv);
-                
-                contentDiv.appendChild(form);
-                
-                // Show modal
-                document.getElementById('run-checklist-modal').classList.remove('hidden');
-            })
-            .catch(error => {
-                console.error('Error running checklist:', error);
-                window.app.showNotification('Failed to run checklist', 'error');
-            });
-        }
-        
-        function updateRunItem(runId, itemId, completed) {
-            window.auth.apiRequest(`/checklists/runs/${runId}/items/${itemId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    completed: completed,
-                    notes: document.querySelector(`input[data-item-id="${itemId}"][type="text"]`).value
-                })
-            })
-            .catch(error => {
-                console.error('Error updating run item:', error);
-                window.app.showNotification('Failed to update item', 'error');
-            });
-        }
-        
-        function updateRunItemNotes(runId, itemId, notes) {
-            const checkbox = document.querySelector(`input[data-item-id="${itemId}"][type="checkbox"]`);
-            window.auth.apiRequest(`/checklists/runs/${runId}/items/${itemId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    completed: checkbox.checked,
-                    notes: notes
-                })
-            })
-            .catch(error => {
-                console.error('Error updating run item notes:', error);
-                window.app.showNotification('Failed to update notes', 'error');
-            });
-        }
-        
-        function completeChecklistRun(runId) {
-            window.auth.apiRequest(`/checklists/runs/${runId}/complete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({})
-            })
-            .then(response => {
-                if (response.ok) {
-                    window.app.showNotification('Checklist completed successfully', 'success');
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                    fetchChecklists(); // Refresh the checklists
-                } else {
-                    return response.json().then(data => {
-                        throw new Error(data.detail || 'Failed to complete checklist');
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error completing checklist run:', error);
-                window.app.showNotification(error.message, 'error');
-            });
-        }
-        
-        function viewChecklistHistory(checklistId) {
-            // Get checklist data
-            window.auth.apiRequest(`/checklists/${checklistId}`)
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Failed to fetch checklist details');
-            })
-            .then(checklist => {
-                // Set checklist title
-                document.getElementById('history-checklist-title').textContent = `History for: ${checklist.title}`;
-                
-                // Show loading
-                document.getElementById('run-history-loading').classList.remove('hidden');
-                document.getElementById('no-run-history').classList.add('hidden');
-                document.getElementById('run-history-table').classList.add('hidden');
-                
-                // Fetch checklist runs
-                window.auth.apiRequest(`/checklists/${checklistId}/runs`)
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Failed to fetch checklist runs');
-                })
-                .then(runs => {
-                    // Hide loading
-                    document.getElementById('run-history-loading').classList.add('hidden');
-                    
-                    if (runs.length === 0) {
-                        // Show no runs message
-                        document.getElementById('no-run-history').classList.remove('hidden');
-                        
-                        // Set up run button
-                        document.getElementById('no-history-run-btn').dataset.checklistId = checklistId;
-                        document.getElementById('no-history-run-btn').addEventListener('click', () => {
-                            showChecklistsView();
-                            runChecklist(checklistId);
-                        });
-                    } else {
-                        // Show runs table
-                        document.getElementById('run-history-table').classList.remove('hidden');
-                        
-                        // Populate table
-                        const tableBody = document.getElementById('run-history-body');
-                        tableBody.innerHTML = '';
-                        
-                        runs.forEach(run => {
-                            const completedItems = run.run_items.filter(item => item.completed).length;
-                            const totalItems = run.run_items.length;
-                            
-                            const row = document.createElement('tr');
-                            
-                            // Date column
-                            const dateCell = document.createElement('td');
-                            dateCell.className = 'px-6 py-4 whitespace-nowrap';
-                            
-                            const date = new Date(run.started_at);
-                            dateCell.innerHTML = `
-                                <div class="text-sm text-gray-900">${date.toLocaleDateString()}</div>
-                                <div class="text-sm text-gray-500">${date.toLocaleTimeString()}</div>
-                            `;
-                            
-                            // Status column
-                            const statusCell = document.createElement('td');
-                            statusCell.className = 'px-6 py-4 whitespace-nowrap';
-                            
-                            if (run.completed_at) {
-                                const completeDate = new Date(run.completed_at);
-                                statusCell.innerHTML = `
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Completed
-                                    </span>
-                                    <div class="text-xs text-gray-500 mt-1">${completeDate.toLocaleString()}</div>
-                                `;
-                            } else {
-                                statusCell.innerHTML = `
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                        In Progress
-                                    </span>
-                                `;
-                            }
-                            
-                            // Completion column
-                            const completionCell = document.createElement('td');
-                            completionCell.className = 'px-6 py-4 whitespace-nowrap';
-                            
-                            const completionPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-                            completionCell.innerHTML = `
-                                <div class="text-sm text-gray-900">${completedItems}/${totalItems} (${completionPercentage}%)</div>
-                                <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
-                                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${completionPercentage}%"></div>
-                                </div>
-                            `;
-                            
-                            // Actions column
-                            const actionsCell = document.createElement('td');
-                            actionsCell.className = 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium';
-                            
-                            const viewButton = document.createElement('button');
-                            viewButton.className = 'text-indigo-600 hover:text-indigo-900 mr-3';
-                            viewButton.textContent = 'View Details';
-                            viewButton.addEventListener('click', () => {
-                                viewRunDetails(run.id);
-                            });
-                            
-                            actionsCell.appendChild(viewButton);
-                            
-                            // If run is not completed, add continue button
-                            if (!run.completed_at) {
-                                const continueButton = document.createElement('button');
-                                continueButton.className = 'text-green-600 hover:text-green-900';
-                                continueButton.textContent = 'Continue';
-                                continueButton.addEventListener('click', () => {
-                                    continueChecklistRun(checklistId, run.id);
-                                });
-                                
-                                actionsCell.appendChild(continueButton);
-                            }
-                            
-                            // Add cells to row
-                            row.appendChild(dateCell);
-                            row.appendChild(statusCell);
-                            row.appendChild(completionCell);
-                            row.appendChild(actionsCell);
-                            
-                            // Add row to table
-                            tableBody.appendChild(row);
-                        });
-                    }
-                    
-                    // Show history view
-                    document.getElementById('checklists-grid').classList.add('hidden');
-                    document.getElementById('checklist-run-history').classList.remove('hidden');
-                    
-                    // Set up back button
-                    document.getElementById('history-back-btn').addEventListener('click', showChecklistsView);
-                })
-                .catch(error => {
-                    console.error('Error fetching checklist runs:', error);
-                    window.app.showNotification('Failed to fetch checklist runs', 'error');
-                    document.getElementById('run-history-loading').classList.add('hidden');
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching checklist details:', error);
-                window.app.showNotification('Failed to fetch checklist details', 'error');
-            });
-        }
-        
-        function showChecklistsView() {
-            document.getElementById('checklists-grid').classList.remove('hidden');
-            document.getElementById('checklist-run-history').classList.add('hidden');
-        }
-        
-        function viewRunDetails(runId) {
-            // Fetch run details
-            window.auth.apiRequest(`/checklists/runs/${runId}`)
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Failed to fetch run details');
-            })
-            .then(run => {
-                // Get checklist data to get item text
-                return window.auth.apiRequest(`/checklists/${run.checklist_id}`)
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Failed to fetch checklist details');
-                })
-                .then(checklist => {
-                    return { run, checklist };
-                });
-            })
-            .then(data => {
-                // Set modal title
-                document.getElementById('details-modal-title').textContent = `Run Details: ${data.checklist.title}`;
-                
-                // Build the run details content
-                const contentDiv = document.getElementById('run-details-content');
-                contentDiv.innerHTML = '';
-                
-                // Create run info section
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'bg-gray-50 p-4 rounded-lg mb-4';
-                
-                const startDate = new Date(data.run.started_at);
-                let statusHtml = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">In Progress</span>`;
-                let completedDateHtml = '';
-                
-                if (data.run.completed_at) {
-                    const completeDate = new Date(data.run.completed_at);
-                    statusHtml = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>`;
-                    completedDateHtml = `
-                        <div class="mt-2">
-                            <span class="font-medium text-gray-700">Completed at:</span>
-                            <span class="ml-2">${completeDate.toLocaleString()}</span>
-                        </div>
-                    `;
-                }
-                
-                infoDiv.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div>
-                                <span class="font-medium text-gray-700">Started at:</span>
-                                <span class="ml-2">${startDate.toLocaleString()}</span>
-                            </div>
-                            ${completedDateHtml}
-                            ${data.run.notes ? `
-                                <div class="mt-2">
-                                    <span class="font-medium text-gray-700">Notes:</span>
-                                    <p class="mt-1 text-gray-600">${data.run.notes}</p>
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div>
-                            ${statusHtml}
-                        </div>
-                    </div>
+            }
+            
+            const checklist = await response.json();
+            
+            // Fill the form with the checklist details
+            document.getElementById('checklist-id').value = checklist.id;
+            document.getElementById('checklist-title').value = checklist.title;
+            document.getElementById('checklist-category').value = checklist.category || '';
+            document.getElementById('modal-title').textContent = 'Edit Checklist';
+            
+            // Clear and rebuild the items
+            const itemsContainer = document.getElementById('checklist-items');
+            itemsContainer.innerHTML = '';
+            
+            checklist.items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex items-center space-x-2';
+                itemDiv.innerHTML = `
+                    <input type="text" name="item-text" class="flex-grow px-3 py-2 border border-gray-300 rounded-md" placeholder="Item text" value="${item.text}" required>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="item-required" class="form-checkbox" ${item.is_required ? 'checked' : ''}>
+                        <span class="ml-2 text-sm text-gray-700">Required</span>
+                    </label>
+                    <button type="button" class="remove-item text-red-500 hover:text-red-700">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
                 `;
                 
-                contentDiv.appendChild(infoDiv);
-                
-                // Create items section
-                const itemsDiv = document.createElement('div');
-                itemsDiv.className = 'space-y-4';
-                
-                // Add each checklist item
-                data.checklist.items.forEach(item => {
-                    // Find the corresponding run item
-                    const runItem = data.run.run_items.find(ri => ri.item_id === item.id);
-                    if (!runItem) return;
-                    
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'flex items-start space-x-3 p-3 border rounded-lg ' + 
-                                      (item.is_required ? 'border-red-200' : 'border-gray-200') + ' ' +
-                                      (runItem.completed ? 'bg-green-50' : 'bg-gray-50');
-                    
-                    // Create checkbox (readonly)
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'mt-1 h-5 w-5 text-blue-600';
-                    checkbox.checked = runItem.completed;
-                    checkbox.disabled = true;
-                    
-                    const labelDiv = document.createElement('div');
-                    labelDiv.className = 'flex-1';
-                    
-                    // Create item text
-                    const itemText = document.createElement('div');
-                    itemText.className = 'font-medium text-gray-700';
-                    itemText.textContent = item.text;
-                    if (item.is_required) {
-                        const requiredSpan = document.createElement('span');
-                        requiredSpan.className = 'ml-1 text-red-500';
-                        requiredSpan.textContent = '*';
-                        itemText.appendChild(requiredSpan);
-                    }
-                    
-                    // Add notes if any
-                    let notesDiv = '';
-                    if (runItem.notes) {
-                        notesDiv = document.createElement('div');
-                        notesDiv.className = 'mt-1 text-sm text-gray-600';
-                        notesDiv.textContent = `Notes: ${runItem.notes}`;
-                    }
-                    
-                    // Add everything to the DOM
-                    labelDiv.appendChild(itemText);
-                    if (notesDiv) labelDiv.appendChild(notesDiv);
-                    itemDiv.appendChild(checkbox);
-                    itemDiv.appendChild(labelDiv);
-                    itemsDiv.appendChild(itemDiv);
-                });
-                
-                contentDiv.appendChild(itemsDiv);
-                
-                // Add close button
-                const buttonDiv = document.createElement('div');
-                buttonDiv.className = 'flex justify-end mt-6 border-t pt-4';
-                
-                const closeButton = document.createElement('button');
-                closeButton.type = 'button';
-                closeButton.className = 'px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300';
-                closeButton.textContent = 'Close';
-                closeButton.addEventListener('click', () => {
-                    document.getElementById('run-details-modal').classList.add('hidden');
-                });
-                
-                buttonDiv.appendChild(closeButton);
-                contentDiv.appendChild(buttonDiv);
-                
-                // Show modal
-                document.getElementById('run-details-modal').classList.remove('hidden');
-            })
-            .catch(error => {
-                console.error('Error fetching run details:', error);
-                window.app.showNotification('Failed to fetch run details', 'error');
+                itemsContainer.appendChild(itemDiv);
             });
+            
+            // Add event listeners for remove buttons
+            addRemoveItemListeners();
+            
+            // Show the modal
+            document.getElementById('checklist-modal').classList.remove('hidden');
+        } catch (error) {
+            console.error('Error editing checklist:', error);
+            window.app.showNotification('Failed to edit checklist: ' + error.message, 'error');
+        } finally {
+            showLoading(false);
+        }
+    }
+    
+    async function deleteChecklist(checklistId) {
+        if (!confirm('Are you sure you want to delete this checklist?')) {
+            return;
         }
         
-        function continueChecklistRun(checklistId, runId) {
-            // Get checklist data
-            window.auth.apiRequest(`/checklists/${checklistId}`)
+        try {
+            showLoading(true);
+            
+            const response = await window.auth.apiRequest(`/checklists/${checklistId}`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete checklist');
+            }
+            
+            window.app.showNotification('Checklist deleted successfully', 'success');
+            
+            // Refresh the list
+            await fetchChecklists();
+        } catch (error) {
+            console.error('Error deleting checklist:', error);
+            window.app.showNotification('Failed to delete checklist: ' + error.message, 'error');
+        } finally {
+            showLoading(false);
+        }
+    }
+    
+    function runChecklist(checklistId) {
+        // Store checklist ID in session for the run page
+        sessionStorage.setItem('runChecklistId', checklistId);
+        
+        // Fetch the checklist details and show the run modal
+        window.auth.apiRequest(`/checklists/${checklistId}`)
             .then(response => {
-                if (response.ok) {
-                    return response.json();
+                if (!response.ok) {
+                    throw new Error('Failed to fetch checklist details');
                 }
-                throw new Error('Failed to fetch checklist details');
+                return response.json();
             })
             .then(checklist => {
-                // Get run data
-                return window.auth.apiRequest(`/checklists/runs/${runId}`)
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Failed to fetch run details');
-                })
-                .then(runData => {
-                    // Return both checklist and run data
-                    return { checklist, runData };
-                });
-            })
-            .then(data => {
-                // Switch back to checklists view
-                showChecklistsView();
+                // Update the modal title
+                document.getElementById('run-modal-title').textContent = `Run Checklist: ${checklist.title}`;
                 
-                // Set modal title
-                document.getElementById('run-modal-title').textContent = `Continue Checklist: ${data.checklist.title}`;
+                // Build the checklist form
+                const content = document.getElementById('run-checklist-content');
+                content.innerHTML = `
+                    <form id="run-form">
+                        <input type="hidden" id="run-checklist-id" value="${checklist.id}">
+                        
+                        <div class="space-y-4 mb-6">
+                            <p class="text-gray-700">Complete the following items:</p>
+                            
+                            <div id="run-items" class="space-y-3">
+                                ${checklist.items.map((item, index) => `
+                                    <div class="flex items-start space-x-3">
+                                        <input type="checkbox" name="item-${index}" id="item-${index}" class="mt-1 form-checkbox ${item.is_required ? 'required-item' : ''}">
+                                        <label for="item-${index}" class="text-gray-700 ${item.is_required ? 'font-semibold' : ''}">
+                                            ${item.text}
+                                            ${item.is_required ? '<span class="text-red-500 ml-1">*</span>' : ''}
+                                        </label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            <div class="mt-4">
+                                <label for="run-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                                <textarea id="run-notes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancel-run" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
+                                Cancel
+                            </button>
+                            <button type="submit" id="complete-run" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Complete Run
+                            </button>
+                        </div>
+                    </form>
+                `;
                 
-                // Build the checklist content (similar to runChecklist function)
-                const contentDiv = document.getElementById('run-checklist-content');
-                contentDiv.innerHTML = '';
-                
-                // Create the form for checklist items
-                const form = document.createElement('form');
-                form.id = 'run-checklist-form';
-                form.dataset.runId = data.runData.id;
-                form.dataset.checklistId = data.checklist.id;
-                
-                // Create a div for checklist items
-                const itemsDiv = document.createElement('div');
-                itemsDiv.className = 'space-y-4 mb-6';
-                
-                // Add each checklist item
-                data.checklist.items.forEach(item => {
-                    // Find the corresponding run item
-                    const runItem = data.runData.run_items.find(ri => ri.item_id === item.id);
-                    if (!runItem) return;
-                    
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'flex items-start space-x-3 p-3 border rounded-lg ' + 
-                                       (item.is_required ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50');
-                    
-                    // Create checkbox
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'mt-1 h-5 w-5 text-blue-600 focus:ring-blue-500';
-                    checkbox.dataset.itemId = item.id;
-                    checkbox.dataset.runItemId = runItem.id;
-                    checkbox.checked = runItem.completed;
-                    checkbox.addEventListener('change', function() {
-                        updateRunItem(data.runData.id, item.id, this.checked);
-                    });
-                    
-                    const labelDiv = document.createElement('div');
-                    labelDiv.className = 'flex-1';
-                    
-                    // Create item text
-                    const itemText = document.createElement('label');
-                    itemText.className = 'block font-medium text-gray-700';
-                    itemText.textContent = item.text;
-                    if (item.is_required) {
-                        const requiredSpan = document.createElement('span');
-                        requiredSpan.className = 'ml-1 text-red-500';
-                        requiredSpan.textContent = '*';
-                        itemText.appendChild(requiredSpan);
-                    }
-                    
-                    // Create notes input
-                    const notesInput = document.createElement('input');
-                    notesInput.type = 'text';
-                    notesInput.className = 'mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md text-sm';
-                    notesInput.placeholder = 'Add notes (optional)';
-                    notesInput.dataset.itemId = item.id;
-                    notesInput.value = runItem.notes || '';
-                    notesInput.addEventListener('blur', function() {
-                        updateRunItemNotes(data.runData.id, item.id, this.value);
-                    });
-                    
-                    // Add everything to the DOM
-                    labelDiv.appendChild(itemText);
-                    labelDiv.appendChild(notesInput);
-                    itemDiv.appendChild(checkbox);
-                    itemDiv.appendChild(labelDiv);
-                    itemsDiv.appendChild(itemDiv);
-                });
-                
-                form.appendChild(itemsDiv);
-                
-                // Add Complete button
-                const buttonDiv = document.createElement('div');
-                buttonDiv.className = 'flex justify-between border-t pt-4';
-                
-                const cancelButton = document.createElement('button');
-                cancelButton.type = 'button';
-                cancelButton.className = 'px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100';
-                cancelButton.textContent = 'Cancel';
-                cancelButton.addEventListener('click', () => {
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                });
-                
-                const continueLaterButton = document.createElement('button');
-                continueLaterButton.type = 'button';
-                continueLaterButton.className = 'px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700';
-                continueLaterButton.textContent = 'Continue Later';
-                continueLaterButton.addEventListener('click', () => {
-                    // Simply close the modal but keep the run in progress
-                    window.app.showNotification('Progress saved. You can continue this checklist later.', 'success');
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                    fetchChecklists(); // Refresh the checklists view
-                });
-                
-                const completeButton = document.createElement('button');
-                completeButton.type = 'button';
-                completeButton.className = 'px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700';
-                completeButton.textContent = 'Complete Checklist';
-                completeButton.addEventListener('click', () => {
-                    completeChecklistRun(data.runData.id);
-                });
-                
-                buttonDiv.appendChild(cancelButton);
-                buttonDiv.appendChild(continueLaterButton);
-                buttonDiv.appendChild(completeButton);
-                form.appendChild(buttonDiv);
-                
-                contentDiv.appendChild(form);
-                
-                // Show modal
+                // Show the modal
                 document.getElementById('run-checklist-modal').classList.remove('hidden');
+                
+                // Add event listeners
+                document.getElementById('cancel-run').addEventListener('click', function() {
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                });
+                
+                document.getElementById('close-run-modal').addEventListener('click', function() {
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                });
+                
+                document.getElementById('run-form').addEventListener('submit', completeChecklistRun);
+            })
+            .catch(error => {
+                console.error('Error preparing checklist run:', error);
+                window.app.showNotification('Failed to prepare checklist run: ' + error.message, 'error');
+            });
+    }
+    
+    function completeChecklistRun(e) {
+        e.preventDefault();
+        
+        const checklistId = document.getElementById('run-checklist-id').value;
+        const notes = document.getElementById('run-notes').value;
+        
+        // Collect item completion status
+        const items = [];
+        document.querySelectorAll('#run-items input[type="checkbox"]').forEach((checkbox, index) => {
+            items.push({
+                index: index,
+                completed: checkbox.checked
+            });
+        });
+        
+        // Check if all required items are completed
+        const requiredItems = document.querySelectorAll('#run-items .required-item');
+        let allRequiredCompleted = true;
+        
+        requiredItems.forEach(item => {
+            if (!item.checked) {
+                allRequiredCompleted = false;
+            }
+        });
+        
+        if (!allRequiredCompleted) {
+            if (!confirm('Not all required items are completed. Do you want to continue anyway?')) {
+                return;
+            }
+        }
+        
+        // Prepare data for the API
+        const data = {
+            checklist_id: checklistId,
+            items: items,
+            notes: notes || null
+        };
+        
+        // Send the request to create a new run
+        window.auth.apiRequest('/checklists/runs', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to save checklist run');
+            }
+            return response.json();
+        })
+        .then(run => {
+            window.app.showNotification('Checklist run completed successfully', 'success');
+            document.getElementById('run-checklist-modal').classList.add('hidden');
+            
+            // View the history for this checklist
+            viewChecklistHistory(checklistId);
+        })
+        .catch(error => {
+            console.error('Error completing checklist run:', error);
+            window.app.showNotification('Failed to complete checklist run: ' + error.message, 'error');
+        });
+    }
+    
+    async function viewChecklistHistory(checklistId) {
+        try {
+            showLoading(true);
+            
+            // Hide checklists grid and show history view
+            document.getElementById('checklists-grid').classList.add('hidden');
+            const historyView = document.getElementById('checklist-run-history');
+            historyView.classList.remove('hidden');
+            
+            // Show loading indicator
+            document.getElementById('run-history-loading').classList.remove('hidden');
+            document.getElementById('no-run-history').classList.add('hidden');
+            document.getElementById('run-history-table').classList.add('hidden');
+            
+            // Get checklist details first
+            const checklistResponse = await window.auth.apiRequest(`/checklists/${checklistId}`);
+            
+            if (!checklistResponse.ok) {
+                throw new Error('Failed to fetch checklist details');
+            }
+            
+            const checklist = await checklistResponse.json();
+            
+            // Update the title
+            document.getElementById('history-checklist-title').textContent = `${checklist.title} - Run History`;
+            
+            // Fetch runs for this checklist
+            const runsResponse = await window.auth.apiRequest(`/checklists/${checklistId}/runs`);
+            
+            if (!runsResponse.ok) {
+                throw new Error('Failed to fetch checklist runs');
+            }
+            
+            const runs = await runsResponse.json();
+            
+            // Hide loading indicator
+            document.getElementById('run-history-loading').classList.add('hidden');
+            
+            if (runs.length === 0) {
+                // Show no history message
+                document.getElementById('no-run-history').classList.remove('hidden');
+                
+                // Set up button to run checklist from here
+                document.getElementById('no-history-run-btn').onclick = function() {
+                    document.getElementById('no-run-history').classList.add('hidden');
+                    runChecklist(checklistId);
+                };
+                
+                return;
+            }
+            
+            // Sort runs by date (newest first)
+            runs.sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+            
+            // Show the table and populate it
+            const historyTable = document.getElementById('run-history-table');
+            historyTable.classList.remove('hidden');
+            
+            const tbody = document.getElementById('run-history-body');
+            tbody.innerHTML = '';
+            
+            runs.forEach(run => {
+                const row = document.createElement('tr');
+                
+                // Calculate completion rate
+                const totalItems = run.items ? run.items.length : 0;
+                const completedItems = run.items ? run.items.filter(item => item.completed).length : 0;
+                const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+                
+                // Determine status
+                let status = 'Unknown';
+                let statusClass = 'bg-gray-100 text-gray-800';
+                
+                if (!run.completed_at) {
+                    status = 'In Progress';
+                    statusClass = 'bg-yellow-100 text-yellow-800';
+                } else if (run.items) {
+                    // Check if all required items are completed
+                    const allRequiredComplete = true; // Simplified, should actually check each required item
+                    
+                    if (allRequiredComplete) {
+                        status = 'Completed';
+                        statusClass = 'bg-blue-100 text-blue-800';
+                    } else {
+                        status = 'Incomplete';
+                        statusClass = 'bg-red-100 text-red-800';
+                    }
+                }
+                
+                const startDate = new Date(run.started_at);
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${startDate.toLocaleDateString()}</div>
+                        <div class="text-xs text-gray-500">${startDate.toLocaleTimeString()}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${completionRate}%</div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${completionRate}%"></div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-blue-600 hover:text-blue-900 view-run-btn" data-run-id="${run.id}">View Details</button>
+                        ${!run.completed_at ? `
+                        <button class="ml-3 text-blue-600 hover:text-blue-900 continue-run-btn" data-run-id="${run.id}">Continue</button>
+                        ` : ''}
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+                
+                // Add event listeners
+                row.querySelector('.view-run-btn').addEventListener('click', () => showRunDetails(run.id));
+                
+                const continueBtn = row.querySelector('.continue-run-btn');
+                if (continueBtn) {
+                    continueBtn.addEventListener('click', () => continueChecklistRun(checklistId, run.id));
+                }
+            });
+            
+            // Set up back button
+            document.getElementById('history-back-btn').onclick = function() {
+                historyView.classList.add('hidden');
+                document.getElementById('checklists-grid').classList.remove('hidden');
+            };
+        } catch (error) {
+            console.error('Error viewing checklist history:', error);
+            window.app.showNotification('Failed to load checklist history: ' + error.message, 'error');
+        } finally {
+            showLoading(false);
+        }
+    }
+    
+    async function showRunDetails(runId) {
+        try {
+            const response = await window.auth.apiRequest(`/checklists/runs/${runId}`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch run details');
+            }
+            
+            const run = await response.json();
+            
+            // Get checklist details
+            const checklistResponse = await window.auth.apiRequest(`/checklists/${run.checklist_id}`);
+            
+            if (!checklistResponse.ok) {
+                throw new Error('Failed to fetch checklist details');
+            }
+            
+            const checklist = await checklistResponse.json();
+            
+            // Update modal title
+            document.getElementById('details-modal-title').textContent = `Run Details: ${checklist.title}`;
+            
+            // Calculate completion
+            const totalItems = run.items ? run.items.length : 0;
+            const completedItems = run.items ? run.items.filter(item => item.completed).length : 0;
+            const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+            
+            // Determine status
+            let status = 'Unknown';
+            let statusClass = 'bg-gray-100 text-gray-800';
+            
+            if (!run.completed_at) {
+                status = 'In Progress';
+                statusClass = 'bg-yellow-100 text-yellow-800';
+            } else {
+                // Simplified check
+                status = 'Completed';
+                statusClass = 'bg-blue-100 text-blue-800';
+            }
+            
+            const startDate = new Date(run.started_at);
+            const endDate = run.completed_at ? new Date(run.completed_at) : null;
+            
+            // Build content
+            const content = document.getElementById('run-details-content');
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium text-gray-700">Status:</span>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
+                                ${status}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <span class="font-medium text-gray-700">Started:</span>
+                        <span class="text-gray-600">${startDate.toLocaleString()}</span>
+                    </div>
+                    
+                    ${endDate ? `
+                    <div>
+                        <span class="font-medium text-gray-700">Completed:</span>
+                        <span class="text-gray-600">${endDate.toLocaleString()}</span>
+                    </div>
+                    ` : ''}
+                    
+                    <div>
+                        <span class="font-medium text-gray-700">Completion:</span>
+                        <span class="text-gray-600">${completedItems}/${totalItems} items (${completionRate}%)</span>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${completionRate}%"></div>
+                        </div>
+                    </div>
+                    
+                    ${run.notes ? `
+                    <div>
+                        <span class="font-medium text-gray-700">Notes:</span>
+                        <p class="text-gray-600 mt-1 whitespace-pre-line">${run.notes}</p>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="mt-4">
+                        <h4 class="font-medium text-gray-700 mb-2">Items:</h4>
+                        <div class="space-y-2">
+                            ${run.items.map((item, index) => {
+                                const checklistItem = checklist.items[item.index];
+                                return `
+                                    <div class="flex items-start space-x-3">
+                                        <input type="checkbox" disabled ${item.completed ? 'checked' : ''} class="mt-1">
+                                        <span class="text-gray-700 ${checklistItem && checklistItem.is_required ? 'font-semibold' : ''}">
+                                            ${checklistItem ? checklistItem.text : `Item ${index + 1}`}
+                                            ${checklistItem && checklistItem.is_required ? '<span class="text-red-500 ml-1">*</span>' : ''}
+                                        </span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button id="close-details-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                        Close
+                    </button>
+                </div>
+            `;
+            
+            // Add event listener to close button
+            document.getElementById('close-details-btn').addEventListener('click', function() {
+                document.getElementById('run-details-modal').classList.add('hidden');
+            });
+            
+            // Show the modal
+            document.getElementById('run-details-modal').classList.remove('hidden');
+        } catch (error) {
+            console.error('Error showing run details:', error);
+            window.app.showNotification('Failed to load run details: ' + error.message, 'error');
+        }
+    }
+    
+    function continueChecklistRun(checklistId, runId) {
+        // Fetch the run details to continue
+        window.auth.apiRequest(`/checklists/runs/${runId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch run details');
+                }
+                return response.json();
+            })
+            .then(run => {
+                // Make sure run.items exists
+                run.items = run.items || [];
+                
+                // Fetch the checklist details
+                return window.auth.apiRequest(`/checklists/${checklistId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to fetch checklist details');
+                        }
+                        return response.json().then(checklist => ({ run, checklist }));
+                    });
+            })
+            .then(({ run, checklist }) => {
+                // Update the modal title
+                document.getElementById('run-modal-title').textContent = `Continue Checklist: ${checklist.title}`;
+                
+                // Build the checklist form
+                const content = document.getElementById('run-checklist-content');
+                content.innerHTML = `
+                    <form id="run-form">
+                        <input type="hidden" id="run-checklist-id" value="${checklist.id}">
+                        <input type="hidden" id="run-id" value="${run.id}">
+                        
+                        <div class="space-y-4 mb-6">
+                            <p class="text-gray-700">Complete the following items:</p>
+                            
+                            <div id="run-items" class="space-y-3">
+                                ${checklist.items.map((item, index) => {
+                                    const runItem = run.items.find(i => i.index === index);
+                                    const isCompleted = runItem && runItem.completed;
+                                    
+                                    return `
+                                        <div class="flex items-start space-x-3">
+                                            <input type="checkbox" name="item-${index}" id="item-${index}" ${isCompleted ? 'checked' : ''} class="mt-1 form-checkbox ${item.is_required ? 'required-item' : ''}">
+                                            <label for="item-${index}" class="text-gray-700 ${item.is_required ? 'font-semibold' : ''}">
+                                                ${item.text}
+                                                ${item.is_required ? '<span class="text-red-500 ml-1">*</span>' : ''}
+                                            </label>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            
+                            <div class="mt-4">
+                                <label for="run-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                                <textarea id="run-notes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">${run.notes || ''}</textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancel-run" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
+                                Cancel
+                            </button>
+                            <button type="submit" id="complete-run" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Complete Run
+                            </button>
+                        </div>
+                    </form>
+                `;
+                
+                // Show the modal
+                document.getElementById('run-checklist-modal').classList.remove('hidden');
+                
+                // Add event listeners
+                document.getElementById('cancel-run').addEventListener('click', function() {
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                });
+                
+                document.getElementById('close-run-modal').addEventListener('click', function() {
+                    document.getElementById('run-checklist-modal').classList.add('hidden');
+                });
+                
+                document.getElementById('run-form').addEventListener('submit', completeInProgressRun);
             })
             .catch(error => {
                 console.error('Error continuing checklist run:', error);
-                window.app.showNotification('Failed to continue checklist run', 'error');
+                window.app.showNotification('Failed to continue checklist run: ' + error.message, 'error');
             });
+    }
+    
+    function completeInProgressRun(e) {
+        e.preventDefault();
+        
+        const checklistId = document.getElementById('run-checklist-id').value;
+        const runId = document.getElementById('run-id').value;
+        const notes = document.getElementById('run-notes').value;
+        
+        // Collect item completion status
+        const items = [];
+        document.querySelectorAll('#run-items input[type="checkbox"]').forEach((checkbox, index) => {
+            items.push({
+                index: index,
+                completed: checkbox.checked
+            });
+        });
+        
+        // Check if all required items are completed
+        const requiredItems = document.querySelectorAll('#run-items .required-item');
+        let allRequiredCompleted = true;
+        
+        requiredItems.forEach(item => {
+            if (!item.checked) {
+                allRequiredCompleted = false;
+            }
+        });
+        
+        if (!allRequiredCompleted) {
+            if (!confirm('Not all required items are completed. Do you want to continue anyway?')) {
+                return;
+            }
         }
         
-        // Close run modal when clicking the close button
-        document.getElementById('close-run-modal').addEventListener('click', () => {
-            document.getElementById('run-checklist-modal').classList.add('hidden');
-        });
+        // Prepare data for the API
+        const data = {
+            items: items,
+            notes: notes || null,
+            completed: true
+        };
         
-        // Close details modal when clicking the close button
-        document.getElementById('close-details-modal').addEventListener('click', () => {
-            document.getElementById('run-details-modal').classList.add('hidden');
+        // Update the run
+        window.auth.apiRequest(`/checklists/runs/${runId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to update checklist run');
+            }
+            return response.json();
+        })
+        .then(run => {
+            window.app.showNotification('Checklist run completed successfully', 'success');
+            document.getElementById('run-checklist-modal').classList.add('hidden');
+            
+            // View the history for this checklist
+            viewChecklistHistory(checklistId);
+        })
+        .catch(error => {
+            console.error('Error completing checklist run:', error);
+            window.app.showNotification('Failed to complete checklist run: ' + error.message, 'error');
         });
-    });
+    }
+
+    // ... rest of the existing functions ...
+}
 </script>
 {% endblock %} 

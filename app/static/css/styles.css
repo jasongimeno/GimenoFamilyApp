@@ -9,20 +9,23 @@
     --color-text-secondary: #4b5563;
     --color-border: #e5e7eb;
     
-    /* Brand colors */
-    --color-primary: #4f46e5;
-    --color-primary-hover: #4338ca;
-    --color-primary-light: #eef2ff;
+    /* Unified brand color palette - changed from slate/blue-grey to blue */
+    --color-primary: #3b82f6;           /* Changed from #475569 (slate) to #3b82f6 (blue) */
+    --color-primary-hover: #2563eb;     /* Changed from #334155 to #2563eb (darker blue) */
+    --color-primary-light: #eff6ff;     /* Changed from #f1f5f9 to #eff6ff (light blue) */
+    --color-secondary: #60a5fa;         /* Changed from #64748b to #60a5fa (lighter blue) */
+    --color-secondary-hover: #93c5fd;   /* Changed from #94a3b8 to #93c5fd (even lighter blue) */
+    --color-accent: #1e40af;            /* Changed from #3b82f6 to #1e40af (dark blue) */
     
-    /* Feature colors */
-    --color-checklist: #3b82f6;
-    --color-checklist-light: #eff6ff;
-    --color-carpool: #10b981;
-    --color-carpool-light: #ecfdf5;
-    --color-meal: #8b5cf6;
-    --color-meal-light: #f5f3ff;
+    /* Feature colors - now unified with the blue color scheme */
+    --color-checklist: #3b82f6;       /* Using primary blue */
+    --color-checklist-light: #eff6ff; /* Using primary light blue */
+    --color-carpool: #60a5fa;         /* Using secondary blue */
+    --color-carpool-light: #eff6ff;   /* Using primary light blue */
+    --color-meal: #60a5fa;            /* Using secondary blue */
+    --color-meal-light: #eff6ff;      /* Using primary light blue */
     
-    /* Status colors */
+    /* Status colors - keep these for semantic meaning */
     --color-success: #10b981;
     --color-danger: #ef4444;
     --color-warning: #f59e0b;
@@ -38,30 +41,33 @@
     --transition-fast: 150ms;
     --transition-normal: 250ms;
     
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, var(--color-primary), #6366f1);
-    --gradient-checklist: linear-gradient(135deg, var(--color-checklist), #60a5fa);
-    --gradient-carpool: linear-gradient(135deg, var(--color-carpool), #34d399);
-    --gradient-meal: linear-gradient(135deg, var(--color-meal), #a78bfa);
+    /* Unified gradients */
+    --gradient-primary: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+    --gradient-secondary: linear-gradient(135deg, var(--color-secondary), var(--color-accent));
 }
 
 /* Dark mode variables */
 .dark {
-    --color-background: #111827;
-    --color-surface: #1f2937;
-    --color-text: #f9fafb;
-    --color-text-secondary: #d1d5db;
-    --color-border: #374151;
+    --color-background: #0f172a; /* Darker background */
+    --color-surface: #1e293b;    /* Darker surface */
+    --color-text: #f1f5f9;       /* Lighter text */
+    --color-text-secondary: #cbd5e1;
+    --color-border: #334155;
     
-    /* Brand colors - slightly adjusted for dark mode */
-    --color-primary: #6366f1;
-    --color-primary-hover: #818cf8;
-    --color-primary-light: #312e81;
+    /* Brand colors - adjusted for dark mode */
+    --color-primary: #60a5fa;         /* Lighter blue for dark mode */
+    --color-primary-hover: #93c5fd;   /* Even lighter blue for hover in dark mode */
+    --color-primary-light: #1e3a8a;   /* Dark blue background for dark mode */
+    --color-secondary: #93c5fd;       /* Very light blue for dark mode */
+    --color-secondary-hover: #bfdbfe; /* Extremely light blue for hover in dark mode */
     
     /* Feature colors - adjusted for dark mode */
+    --color-checklist: #60a5fa;
     --color-checklist-light: #1e3a8a;
-    --color-carpool-light: #065f46;
-    --color-meal-light: #5b21b6;
+    --color-carpool: #60a5fa;
+    --color-carpool-light: #1e3a8a;
+    --color-meal: #60a5fa;
+    --color-meal-light: #1e3a8a;
     
     /* Shadow adjustments */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -130,7 +136,139 @@ body {
     }
 }
 
-/* Checklist specific styling */
+/* Navbar styling */
+.navbar-gradient {
+    background: linear-gradient(to right, var(--color-primary), var(--color-secondary)) !important;
+    color: white;
+}
+
+.dark .navbar-gradient {
+    background: linear-gradient(to right, #1e3a8a, #3b82f6) !important;
+}
+
+/* Dark mode utility classes */
+.dark-bg {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text);
+}
+
+.dark-text {
+    color: var(--color-text) !important;
+}
+
+.dark-border {
+    border-color: var(--color-border) !important;
+}
+
+/* Global dark mode overrides */
+.dark {
+    background-color: var(--color-background);
+    color: var(--color-text);
+}
+
+.dark .bg-white {
+    background-color: var(--color-surface) !important;
+}
+
+.dark .bg-gray-50 {
+    background-color: var(--color-background) !important;
+}
+
+.dark .text-gray-500,
+.dark .text-gray-600,
+.dark .text-gray-700,
+.dark .text-gray-800 {
+    color: var(--color-text) !important;
+}
+
+.dark .border,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+    border-color: var(--color-border) !important;
+}
+
+/* Make sure text is always readable in meal planning */
+.text-slate-600, 
+.text-slate-700,
+.text-green-600,
+.text-green-700,
+.text-blue-600,
+.text-blue-700,
+.text-indigo-600,
+.text-indigo-700,
+.text-purple-600,
+.text-purple-700 {
+    color: var(--color-primary) !important;
+}
+
+.dark .text-slate-600, 
+.dark .text-slate-700,
+.dark .text-green-600,
+.dark .text-green-700,
+.dark .text-blue-600,
+.dark .text-blue-700,
+.dark .text-indigo-600,
+.dark .text-indigo-700,
+.dark .text-purple-600,
+.dark .text-purple-700 {
+    color: var(--color-text) !important;
+}
+
+/* Ensure all text elements are readable regardless of context */
+h1, h2, h3, h4, h5, h6, p, span, div, li, a {
+    transition: color var(--transition-normal);
+}
+
+.dark h1:not([class*="text-white"]),
+.dark h2:not([class*="text-white"]),
+.dark h3:not([class*="text-white"]),
+.dark h4:not([class*="text-white"]),
+.dark h5:not([class*="text-white"]),
+.dark h6:not([class*="text-white"]),
+.dark p:not([class*="text-white"]),
+.dark span:not([class*="text-white"]),
+.dark div:not([class*="text-white"]),
+.dark li:not([class*="text-white"]),
+.dark a:not([class*="text-white"]):not(.navbar-gradient *) {
+    color: var(--color-text) !important;
+}
+
+/* Form styling */
+input, select, textarea {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    transition: border-color var(--transition-normal), background-color var(--transition-normal);
+}
+
+.dark input, 
+.dark select, 
+.dark textarea {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+/* Input focus states */
+input:focus, 
+select:focus, 
+textarea:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.2);
+}
+
+/* Form labels */
+label {
+    color: var(--color-text-secondary);
+    transition: color var(--transition-normal);
+}
+
+.dark label {
+    color: var(--color-text);
+}
+
+/* Checklist specific styling - unified with blue-grey theme */
 .checklist-item {
     transition: background-color var(--transition-normal);
     border: 1px solid var(--color-border);
@@ -146,7 +284,7 @@ body {
     color: var(--color-text-secondary);
 }
 
-/* Calendar styling for carpool */
+/* Calendar styling for carpool - unified with blue-grey theme */
 .calendar-day {
     min-height: 100px;
     border: 1px solid var(--color-border);
@@ -167,7 +305,7 @@ body {
     font-size: 0.875rem;
 }
 
-/* Meal planning grid */
+/* Meal planning grid - already unified with blue-grey theme */
 .meal-day {
     border: 1px solid var(--color-border);
     padding: 0.5rem;
@@ -180,6 +318,17 @@ body {
     padding: 0.5rem;
     margin-bottom: 0.25rem;
     border-radius: 0.25rem;
+}
+
+/* Fix for meal planning text specifically */
+.meal-item *, 
+.meal-day * {
+    color: var(--color-text) !important;
+}
+
+.dark .meal-item *, 
+.dark .meal-day * {
+    color: var(--color-text) !important;
 }
 
 /* Theme toggle button */
@@ -206,6 +355,11 @@ body {
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
+    background-image: var(--gradient-primary);
+}
+
+.dark .gradient-heading {
+    background-image: var(--gradient-secondary);
 }
 
 .feature-card {
@@ -219,15 +373,250 @@ body {
     box-shadow: var(--shadow-hover);
 }
 
+/* Buttons and interactive elements */
+button, 
+.btn, 
+[type="button"], 
+[type="submit"], 
+[type="reset"] {
+    transition: all var(--transition-normal);
+}
+
+/* Modal styling enhancements */
+.modal {
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: visibility var(--transition-normal), opacity var(--transition-normal);
+}
+
+.modal-content {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-border);
+}
+
+.dark .modal-content {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-border);
+}
+
+/* Override color classes for consistent styling */
+.bg-green-500, .bg-green-600, .hover\:bg-green-600, .hover\:bg-green-700,
+.bg-blue-500, .bg-blue-600, .hover\:bg-blue-600, .hover\:bg-blue-700,
+.bg-indigo-500, .bg-indigo-600, .hover\:bg-indigo-600, .hover\:bg-indigo-700,
+.bg-purple-500, .bg-purple-600, .hover\:bg-purple-600, .hover\:bg-purple-700,
+.bg-slate-500, .bg-slate-600, .hover\:bg-slate-600, .hover\:bg-slate-700 {
+    background-color: var(--color-primary) !important;
+}
+
+.hover\:bg-green-600:hover, .hover\:bg-green-700:hover,
+.hover\:bg-blue-600:hover, .hover\:bg-blue-700:hover,
+.hover\:bg-indigo-600:hover, .hover\:bg-indigo-700:hover,
+.hover\:bg-purple-600:hover, .hover\:bg-purple-700:hover,
+.hover\:bg-slate-600:hover, .hover\:bg-slate-700:hover {
+    background-color: var(--color-primary-hover) !important;
+}
+
+.bg-green-100, .bg-blue-100, .bg-indigo-100, .bg-purple-100 {
+    background-color: var(--color-primary-light) !important;
+}
+
+.border-green-500, .border-blue-500, .border-indigo-500, .border-purple-500 {
+    border-color: var(--color-primary) !important;
+}
+
+.dark .bg-green-500, .dark .bg-green-600, .dark .hover\:bg-green-600, .dark .hover\:bg-green-700,
+.dark .bg-blue-500, .dark .bg-blue-600, .dark .hover\:bg-blue-600, .dark .hover\:bg-blue-700,
+.dark .bg-indigo-500, .dark .bg-indigo-600, .dark .hover\:bg-indigo-600, .dark .hover\:bg-indigo-700,
+.dark .bg-purple-500, .dark .bg-purple-600, .dark .hover\:bg-purple-600, .dark .hover\:bg-purple-700 {
+    background-color: var(--color-primary) !important;
+}
+
+/* Tables styling */
+table {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border-collapse: collapse;
+}
+
+th, td {
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+.dark table {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+}
+
+.dark th,
+.dark td {
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+/* Table striping */
+tr:nth-child(even) {
+    background-color: var(--color-primary-light);
+}
+
+.dark tr:nth-child(even) {
+    background-color: rgba(100, 116, 139, 0.1);
+}
+
+/* Badge styling */
+.badge {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.dark .badge {
+    background-color: rgba(100, 116, 139, 0.2);
+    color: var(--color-text);
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
     .container {
         padding-left: 1rem;
         padding-right: 1rem;
     }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    h2 {
+        font-size: 1.25rem;
+    }
+    
+    h3 {
+        font-size: 1.125rem;
+    }
 }
 
-/* Dark mode support (for future implementation) */
-@media (prefers-color-scheme: dark) {
-    /* Dark mode styles would go here */
+/* Dark mode component fixes */
+.dark .card,
+.dark .bg-white {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-border) !important;
+}
+
+.dark .shadow-md,
+.dark .shadow-lg {
+    box-shadow: var(--shadow-md);
+}
+
+/* Navbar fixups */
+nav.navbar-gradient {
+    background: linear-gradient(to right, var(--color-primary), var(--color-secondary)) !important;
+    color: white !important;
+}
+
+.dark nav.navbar-gradient {
+    background: linear-gradient(to right, #1e3a8a, #3b82f6) !important;
+}
+
+/* Card and container fixes for dark mode */
+.dark div[class*="bg-white"],
+.dark div[class*="rounded-lg"],
+.dark div[class*="shadow-md"] {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+}
+
+/* Fix for notification container */
+#notification-container .bg-blue-500 {
+    background-color: var(--color-info) !important;
+}
+
+#notification-container .bg-green-500 {
+    background-color: var(--color-success) !important;
+}
+
+#notification-container .bg-red-500 {
+    background-color: var(--color-danger) !important;
+}
+
+#notification-container .bg-yellow-500 {
+    background-color: var(--color-warning) !important;
+}
+
+/* Fix for the dark-content utility class */
+.dark-content {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-border) !important;
+}
+
+/* Ensure all text is visible with appropriate contrast */
+.dark [class*="text-gray-"], 
+.dark [class*="text-slate-"],
+.dark [class*="text-blue-"],
+.dark [class*="text-green-"],
+.dark [class*="text-indigo-"],
+.dark [class*="text-purple-"] {
+    color: var(--color-text) !important;
+}
+
+/* Ensure links have appropriate styling */
+a:not([class*="bg-"]):not(.navbar-gradient *) {
+    color: var(--color-primary);
+    transition: color var(--transition-normal);
+}
+
+a:hover:not([class*="bg-"]):not(.navbar-gradient *) {
+    color: var(--color-primary-hover);
+}
+
+.dark a:not([class*="bg-"]):not(.navbar-gradient *) {
+    color: var(--color-secondary);
+}
+
+.dark a:hover:not([class*="bg-"]):not(.navbar-gradient *) {
+    color: var(--color-secondary-hover);
+}
+
+/* Fix for main page hero buttons (white on white issue) */
+.bg-white.text-white,
+button.bg-white.text-white,
+a.bg-white.text-white {
+    color: var(--color-primary) !important;
+    border: 1px solid var(--color-primary);
+}
+
+/* If there's no background but white text, ensure it has a colored background */
+button.text-white:not([class*="bg-"]),
+a.text-white:not([class*="bg-"]) {
+    background-color: var(--color-primary) !important;
+}
+
+/* Button styling */
+.btn-primary, 
+.bg-primary {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+}
+
+.btn-secondary, 
+.bg-secondary {
+    background-color: var(--color-secondary) !important;
+    color: white !important;
+}
+
+.btn-outline {
+    background-color: transparent !important;
+    color: var(--color-primary) !important;
+    border: 1px solid var(--color-primary) !important;
+}
+
+.btn-outline:hover {
+    background-color: var(--color-primary-light) !important;
 } 

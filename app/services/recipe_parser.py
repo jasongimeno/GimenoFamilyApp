@@ -60,7 +60,7 @@ class RecipeParser:
         days_since_monday = meal_date.weekday()
         monday_date = meal_date - timedelta(days=days_since_monday)
         
-        # Format as dd/mm/yyyy
-        monday_formatted = monday_date.strftime("%d/%m/%Y")
+        # Format as mm/dd/yyyy
+        monday_formatted = monday_date.strftime("%m/%d/%Y")
         
         return f"Weekly Shopping List - {monday_formatted}" 

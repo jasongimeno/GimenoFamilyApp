@@ -3,59 +3,122 @@
 {% block title %}Family Management Solution - Home{% endblock %}
 
 {% block content %}
-<div class="text-center max-w-4xl mx-auto">
-    <h1 class="text-4xl font-bold mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-400">Welcome to Family Management Solution</h1>
-    <p class="text-lg mb-10 text-gray-700 dark:text-gray-300">A comprehensive tool designed to simplify family organization and logistics.</p>
+<div class="container mx-auto px-4 py-8">
+    <div class="text-center mb-16">
+        <h1 class="text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent dark:from-blue-400 dark:to-blue-300">Welcome to Family Management Solution</h1>
+        <p class="text-xl text-gray-600 dark:text-gray-400">A comprehensive tool to help you organize your family life</p>
+    </div>
     
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <!-- Checklist feature -->
         <div class="feature-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-t-4 border-blue-500 dark:border-blue-400 transform transition-all duration-300 hover:-translate-y-2">
             <div class="bg-blue-100 dark:bg-blue-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600 dark:text-blue-300" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
             </div>
             <h2 class="text-xl font-semibold mb-3 text-blue-600 dark:text-blue-400">Checklist Tool</h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-6">Create, run, and track custom checklists with automated email reporting.</p>
-            <a href="/checklists" class="inline-block bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
-                Get Started
-            </a>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Create custom checklists for recurring activities and tasks.</p>
+            <a href="/checklists" class="inline-block bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">Try it now</a>
         </div>
         
-        <div class="feature-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-t-4 border-green-500 dark:border-green-400 transform transition-all duration-300 hover:-translate-y-2">
-            <div class="bg-green-100 dark:bg-green-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600 dark:text-green-300" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+        <!-- Carpool feature -->
+        <div class="feature-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-t-4 border-blue-500 dark:border-blue-400 transform transition-all duration-300 hover:-translate-y-2">
+            <div class="bg-blue-100 dark:bg-blue-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600 dark:text-blue-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                    <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1v-1h5.05a2.5 2.5 0 014.9 0H20a1 1 0 001-1v-4a.996.996 0 00-.293-.707l-4-4A.996.996 0 0016 4H3z" />
                 </svg>
             </div>
-            <h2 class="text-xl font-semibold mb-3 text-green-600 dark:text-green-400">Carpool Management</h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-6">Manage carpool schedules easily with calendar or list views for all events.</p>
-            <a href="/carpool" class="inline-block bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
-                Get Started
-            </a>
+            <h2 class="text-xl font-semibold mb-3 text-blue-600 dark:text-blue-400">Carpool Management</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Schedule and manage carpooling for school, sports, and activities.</p>
+            <a href="/carpool" class="inline-block bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">Try it now</a>
         </div>
         
-        <div class="feature-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-t-4 border-purple-500 dark:border-purple-400 transform transition-all duration-300 hover:-translate-y-2">
-            <div class="bg-purple-100 dark:bg-purple-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600 dark:text-purple-300" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+        <!-- Meal planning feature -->
+        <div class="feature-card bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-t-4 border-blue-500 dark:border-blue-400 transform transition-all duration-300 hover:-translate-y-2">
+            <div class="bg-blue-100 dark:bg-blue-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600 dark:text-blue-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 3a1 1 0 011-1h6a1 1 0 011 1v2h1a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h1V3a1 1 0 011-1zm3 7a1 1 0 10-2 0v3a1 1 0 102 0v-3zm3 0a1 1 0 10-2 0v3a1 1 0 102 0v-3z" clip-rule="evenodd" />
                 </svg>
             </div>
-            <h2 class="text-xl font-semibold mb-3 text-purple-600 dark:text-purple-400">Meal Planning</h2>
-            <p class="text-gray-600 dark:text-gray-400 mb-6">Plan meals for the week with AI-driven suggestions based on historical data.</p>
-            <a href="/meals" class="inline-block bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
-                Get Started
-            </a>
+            <h2 class="text-xl font-semibold mb-3 text-blue-600 dark:text-blue-400">Meal Planning</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Plan your meals for the week and generate shopping lists automatically.</p>
+            <a href="/meals" class="inline-block bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">Try it now</a>
         </div>
     </div>
     
-    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900 dark:to-purple-900 dark:bg-opacity-20 p-8 rounded-xl border border-indigo-100 dark:border-indigo-800 shadow-lg">
-        <h2 class="text-2xl font-semibold mb-4 text-indigo-700 dark:text-indigo-300">Ready to Get Organized?</h2>
-        <p class="text-gray-700 dark:text-gray-300 mb-6 max-w-2xl mx-auto">Create an account to get started with all features of the Family Management Solution.</p>
-        <div class="space-x-4">
-            <a href="/register" class="inline-block bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">Register</a>
-            <a href="/login" class="inline-block bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-medium py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">Login</a>
+    <!-- Testimonials or additional features could go here -->
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-xl border border-gray-100 dark:border-gray-700 shadow-lg">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">Get Started Today</h2>
+        <p class="text-center text-gray-600 dark:text-gray-400 mb-8">Join thousands of families who are already using our platform to streamline their daily routines.</p>
+        <div class="flex justify-center flex-wrap gap-4">
+            <a href="/register" class="inline-block bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
+                Sign Up - Free!
+            </a>
+            <a href="/login" class="inline-block bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-300 font-medium py-3 px-8 rounded-lg shadow-md hover:shadow-lg border border-gray-200 dark:border-gray-700 transition-all transform hover:-translate-y-1">
+                Log In
+            </a>
+            <button id="demo-account-btn" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1">
+                Demo Account
+            </button>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const demoAccountBtn = document.getElementById('demo-account-btn');
+        
+        if (demoAccountBtn) {
+            demoAccountBtn.addEventListener('click', async function() {
+                // Show a loading state on the button
+                const originalText = demoAccountBtn.textContent;
+                demoAccountBtn.textContent = 'Logging in...';
+                demoAccountBtn.disabled = true;
+                
+                try {
+                    const response = await fetch('/auth/token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            'username': 'test@test.com',
+                            'password': 'password123', // Assuming this is the password for the test account
+                        }),
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Save token and redirect
+                        localStorage.setItem('accessToken', data.access_token);
+                        localStorage.setItem('userEmail', 'test@test.com');
+                        
+                        // Redirect to dashboard
+                        window.location.href = '/checklists';
+                    } else {
+                        // Show error
+                        console.error('Demo login failed:', data.detail);
+                        alert('Demo login failed: ' + (data.detail || 'Unknown error'));
+                        
+                        // Reset button
+                        demoAccountBtn.textContent = originalText;
+                        demoAccountBtn.disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Demo login error:', error);
+                    alert('Demo login error. Please try again.');
+                    
+                    // Reset button
+                    demoAccountBtn.textContent = originalText;
+                    demoAccountBtn.disabled = false;
+                }
+            });
+        }
+    });
+</script>
 {% endblock %} 

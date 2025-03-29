@@ -237,33 +237,6 @@ function initMealPage() {
 }
 
 /**
- * Initialize theme based on saved preference or system preference
- */
-function initTheme() {
-    // Check if user has a saved preference
-    const savedTheme = localStorage.getItem('theme');
-    
-    if (savedTheme === 'dark') {
-        // User has explicitly chosen dark mode
-        document.documentElement.classList.add('dark');
-    } else if (savedTheme === 'light') {
-        // User has explicitly chosen light mode
-        document.documentElement.classList.remove('dark');
-    } else {
-        // No saved preference, check system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            // System prefers dark mode
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            // System prefers light mode or doesn't have a preference
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-        }
-    }
-}
-
-/**
  * Set up the theme toggle button functionality
  */
 function setupThemeToggle() {
@@ -271,13 +244,181 @@ function setupThemeToggle() {
     
     if (themeToggle) {
         themeToggle.addEventListener('click', function() {
-            // Toggle dark class on html element
+            // Toggle dark class on html and body elements
             document.documentElement.classList.toggle('dark');
+            document.body.classList.toggle('dark');
+            
+            // Apply dark mode to all relevant elements via comprehensive selectors
+            const elementSelectors = [
+                // Base elements
+                '.bg-white', '.bg-gray-50', '.bg-gray-100', '.bg-gray-200',
+                '[class*="text-gray-"]', '[class*="border"]', '[class*="shadow"]',
+                '.card', '.rounded-lg', '.meal-item', '.calendar-day', '.checklist-item',
+                
+                // Form elements
+                'input', 'select', 'textarea', 'label', 'button',
+                
+                // Table elements
+                'table', 'th', 'td', 'tr',
+                
+                // Text elements
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a',
+                
+                // Modal elements
+                '.modal-content', '.modal-header', '.modal-body', '.modal-footer',
+                
+                // Additional colored elements
+                '[class*="text-slate-"]', '[class*="text-blue-"]', 
+                '[class*="text-green-"]', '[class*="text-indigo-"]', 
+                '[class*="text-purple-"]'
+            ];
+            
+            // Join all selectors for a single powerful query
+            const allElements = document.querySelectorAll(elementSelectors.join(','));
+            
+            // Toggle dark mode classes on all elements
+            const isDark = document.documentElement.classList.contains('dark');
+            allElements.forEach(el => {
+                if (isDark) {
+                    el.classList.add('dark-content');
+                } else {
+                    el.classList.remove('dark-content');
+                }
+            });
             
             // Save preference to localStorage
-            const isDark = document.documentElement.classList.contains('dark');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            // Update UI based on current theme
+            updateUIForTheme(isDark);
+            
+            // Check if on mobile and refresh page to ensure styles are properly applied
+            if (window.innerWidth < 768) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 100);
+            }
         });
+    }
+}
+
+/**
+ * Update UI components for the current theme
+ * @param {boolean} isDark - Whether dark mode is active
+ */
+function updateUIForTheme(isDark) {
+    // Update background elements
+    updateElementClasses('.bg-white, .bg-gray-50, .bg-gray-100, .card, .rounded-lg, .shadow-md', 
+        isDark, 'dark-bg', 'bg-white');
+    
+    // Update text elements
+    updateElementClasses('[class*="text-gray-"], [class*="text-slate-"], [class*="text-blue-"], [class*="text-green-"], [class*="text-indigo-"], [class*="text-purple-"]', 
+        isDark, 'dark-text');
+    
+    // Update border elements
+    updateElementClasses('[class*="border"]', 
+        isDark, 'dark-border');
+    
+    // Update meal planning and checklist items
+    updateElementClasses('.meal-item, .meal-day, .checklist-item, .calendar-day, .calendar-event', 
+        isDark, 'dark-content');
+    
+    // Specifically target meal planning text to ensure visibility
+    if (isDark) {
+        document.querySelectorAll('.meal-item *, .meal-day *').forEach(el => {
+            el.style.color = 'var(--color-text)';
+        });
+    } else {
+        document.querySelectorAll('.meal-item *, .meal-day *').forEach(el => {
+            el.style.color = '';  // Reset to default
+        });
+    }
+    
+    // Fix form elements
+    updateElementClasses('input, select, textarea', 
+        isDark, 'dark-content');
+    
+    // Table styling
+    updateElementClasses('table, th, td', 
+        isDark, 'dark-content');
+        
+    // Modal content
+    updateElementClasses('.modal-content, .modal-header, .modal-body, .modal-footer', 
+        isDark, 'dark-content');
+    
+    // Refresh components
+    setupTooltips();
+    setupModals();
+}
+
+/**
+ * Helper function to update classes for a set of elements
+ * @param {string} selector - CSS selector for elements to update
+ * @param {boolean} isDark - Whether dark mode is active
+ * @param {string} darkClass - Class to add in dark mode
+ * @param {string} lightClass - Optional class to add in light mode
+ */
+function updateElementClasses(selector, isDark, darkClass, lightClass = null) {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(el => {
+        if (isDark) {
+            el.classList.add(darkClass);
+            if (lightClass) el.classList.remove(lightClass);
+        } else {
+            el.classList.remove(darkClass);
+            if (lightClass) el.classList.add(lightClass);
+        }
+    });
+}
+
+/**
+ * Initialize theme based on saved preference or system preference
+ * By default, this will use the operating system's dark/light mode preference
+ * unless the user has explicitly set a preference in localStorage
+ */
+function initTheme() {
+    // Check if user has a saved preference
+    const savedTheme = localStorage.getItem('theme');
+    
+    // Check if system prefers dark mode
+    const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Apply the appropriate theme - uses OS preference if no saved preference exists
+    const shouldUseDarkMode = savedTheme === 'dark' || (savedTheme === null && prefersDarkMode);
+    
+    if (shouldUseDarkMode) {
+        // Apply dark mode
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+        updateUIForTheme(true);
+    } else {
+        // Apply light mode
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('dark');
+        updateUIForTheme(false);
+    }
+    
+    // Add listener for system theme changes
+    if (window.matchMedia) {
+        const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        // Add change listener if supported
+        if (colorSchemeQuery.addEventListener) {
+            colorSchemeQuery.addEventListener('change', e => {
+                // Only apply if user hasn't set a preference
+                if (localStorage.getItem('theme') === null) {
+                    if (e.matches) {
+                        document.documentElement.classList.add('dark');
+                        document.body.classList.add('dark');
+                        updateUIForTheme(true);
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        document.body.classList.remove('dark');
+                        updateUIForTheme(false);
+                    }
+                }
+            });
+        }
     }
 }
 
