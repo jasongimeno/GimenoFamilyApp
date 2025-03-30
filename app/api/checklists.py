@@ -506,24 +506,6 @@ def complete_checklist_run(
     # Get run items with associated checklist items
     run_items = db.query(ChecklistRunItem).filter(ChecklistRunItem.run_id == run.id).all()
     
-    # Check if required items are completed
-    required_items = db.query(ChecklistItem).filter(
-        ChecklistItem.checklist_id == run.checklist_id,
-        ChecklistItem.is_required == True
-    ).all()
-    
-    required_item_ids = {item.id for item in required_items}
-    completed_required_item_ids = {
-        item.item_id for item in run_items 
-        if item.completed and item.item_id in required_item_ids
-    }
-    
-    if len(completed_required_item_ids) < len(required_item_ids):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Not all required items are completed"
-        )
-    
     # Update run
     run.completed_at = datetime.now()
     

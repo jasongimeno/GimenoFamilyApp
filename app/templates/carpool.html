@@ -590,6 +590,10 @@ async function loadEvents() {
             return;
         }
         
+        // Clear events container before rendering
+        const eventsContainer = document.getElementById('events-container');
+        eventsContainer.innerHTML = '';
+        
         // Render events in list view (only future events)
         renderEvents(futureEvents);
         

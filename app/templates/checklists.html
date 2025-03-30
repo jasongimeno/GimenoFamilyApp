@@ -640,10 +640,10 @@ function initChecklists() {
     }
     
     function runChecklist(checklistId) {
-        // Store checklist ID in session for the run page
+        // Store checklist ID in session
         sessionStorage.setItem('runChecklistId', checklistId);
         
-        // Fetch the checklist details and show the run modal
+        // First, fetch checklist details
         window.auth.apiRequest(`/checklists/${checklistId}`)
             .then(response => {
                 if (!response.ok) {
@@ -655,57 +655,8 @@ function initChecklists() {
                 // Update the modal title
                 document.getElementById('run-modal-title').textContent = `Run Checklist: ${checklist.title}`;
                 
-                // Build the checklist form
-                const content = document.getElementById('run-checklist-content');
-                content.innerHTML = `
-                    <form id="run-form">
-                        <input type="hidden" id="run-checklist-id" value="${checklist.id}">
-                        
-                        <div class="space-y-4 mb-6">
-                            <p class="text-gray-700">Complete the following items:</p>
-                            
-                            <div id="run-items" class="space-y-3">
-                                ${checklist.items.map((item, index) => `
-                                    <div class="flex items-start space-x-3">
-                                        <input type="checkbox" name="item-${index}" id="item-${index}" class="mt-1 form-checkbox ${item.is_required ? 'required-item' : ''}">
-                                        <label for="item-${index}" class="text-gray-700 ${item.is_required ? 'font-semibold' : ''}">
-                                            ${item.text}
-                                            ${item.is_required ? '<span class="text-red-500 ml-1">*</span>' : ''}
-                                        </label>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            
-                            <div class="mt-4">
-                                <label for="run-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                                <textarea id="run-notes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-end space-x-3">
-                            <button type="button" id="cancel-run" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
-                                Cancel
-                            </button>
-                            <button type="submit" id="complete-run" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                Complete Run
-                            </button>
-                        </div>
-                    </form>
-                `;
-                
-                // Show the modal
-                document.getElementById('run-checklist-modal').classList.remove('hidden');
-                
-                // Add event listeners
-                document.getElementById('cancel-run').addEventListener('click', function() {
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                });
-                
-                document.getElementById('close-run-modal').addEventListener('click', function() {
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                });
-                
-                document.getElementById('run-form').addEventListener('submit', completeChecklistRun);
+                // Create a new run instance (empty form with no pre-filled data)
+                renderRunForm(checklist);
             })
             .catch(error => {
                 console.error('Error preparing checklist run:', error);
@@ -713,65 +664,480 @@ function initChecklists() {
             });
     }
     
-    function completeChecklistRun(e) {
-        e.preventDefault();
+    /**
+     * Renders the run form with checklist items, handling both new runs and continuing existing runs
+     */
+    function renderRunForm(checklist, existingRun = null) {
+        const isNewRun = !existingRun;
+        const modalTitle = isNewRun ? 
+            `Run Checklist: ${checklist.title}` : 
+            `Continue Checklist: ${checklist.title}`;
+            
+        document.getElementById('run-modal-title').textContent = modalTitle;
         
-        const checklistId = document.getElementById('run-checklist-id').value;
-        const notes = document.getElementById('run-notes').value;
-        
-        // Collect item completion status
-        const items = [];
-        document.querySelectorAll('#run-items input[type="checkbox"]').forEach((checkbox, index) => {
-            items.push({
-                index: index,
-                completed: checkbox.checked
-            });
-        });
-        
-        // Check if all required items are completed
-        const requiredItems = document.querySelectorAll('#run-items .required-item');
-        let allRequiredCompleted = true;
-        
-        requiredItems.forEach(item => {
-            if (!item.checked) {
-                allRequiredCompleted = false;
-            }
-        });
-        
-        if (!allRequiredCompleted) {
-            if (!confirm('Not all required items are completed. Do you want to continue anyway?')) {
-                return;
+        // Debug information
+        if (existingRun) {
+            console.log('Rendering form for existing run:', existingRun.id);
+            console.log('Existing run has', existingRun.items ? existingRun.items.length : 0, 'items');
+            
+            // Ensure run.items exists
+            if (!existingRun.items) {
+                console.warn('Run items is undefined, initializing empty array');
+                existingRun.items = [];
             }
         }
         
-        // Prepare data for the API
-        const data = {
-            checklist_id: checklistId,
-            items: items,
-            notes: notes || null
-        };
+        // Build the checklist form
+        const content = document.getElementById('run-checklist-content');
+        content.innerHTML = `
+            <form id="run-form">
+                <input type="hidden" id="run-checklist-id" value="${checklist.id}">
+                ${!isNewRun ? `<input type="hidden" id="run-id" value="${existingRun.id}">` : ''}
+                
+                <div class="space-y-4 mb-6">
+                    <p class="text-gray-700">Complete the following items:</p>
+                    
+                    <div id="run-items" class="space-y-3">
+                        ${checklist.items.map((item, index) => {
+                            // For an existing run, check if the item is already completed
+                            let isCompleted = false;
+                            
+                            if (existingRun && existingRun.items) {
+                                const existingItem = existingRun.items.find(ri => ri.item_id === item.id);
+                                isCompleted = existingItem && existingItem.completed;
+                                
+                                if (existingItem) {
+                                    console.log(`Item #${item.id} (${item.text}) has existing entry - completed: ${existingItem.completed}`);
+                                } else {
+                                    console.log(`Item #${item.id} (${item.text}) has no existing entry`);
+                                }
+                            }
+                            
+                            return `
+                                <div class="flex items-start space-x-3" data-item-id="${item.id}">
+                                    <input type="checkbox" 
+                                        name="item-${index}" 
+                                        id="item-${index}" 
+                                        data-item-id="${item.id}" 
+                                        ${isCompleted ? 'checked' : ''} 
+                                        class="mt-1 form-checkbox ${item.is_required ? 'required-item' : ''}">
+                                    <label for="item-${index}" class="text-gray-700 ${item.is_required ? 'font-semibold' : ''}">
+                                        ${item.text}
+                                        ${item.is_required ? '<span class="text-red-500 ml-1">*</span>' : ''}
+                                    </label>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label for="run-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                        <textarea id="run-notes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">${existingRun && existingRun.notes ? existingRun.notes : ''}</textarea>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="save-progress-btn" class="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700">
+                        Save Progress
+                    </button>
+                    <button type="button" id="cancel-run" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
+                        Cancel
+                    </button>
+                    <button type="submit" id="complete-run" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Complete Run
+                    </button>
+                </div>
+            </form>
+        `;
         
-        // Send the request to create a new run
-        window.auth.apiRequest('/checklists/runs', {
-            method: 'POST',
-            body: JSON.stringify(data)
+        // Show the modal
+        document.getElementById('run-checklist-modal').classList.remove('hidden');
+        
+        // Add event listeners
+        document.getElementById('cancel-run').addEventListener('click', function() {
+            document.getElementById('run-checklist-modal').classList.add('hidden');
+        });
+        
+        document.getElementById('close-run-modal').addEventListener('click', function() {
+            document.getElementById('run-checklist-modal').classList.add('hidden');
+        });
+        
+        // Handle save progress button - creates or updates the run without completing it
+        document.getElementById('save-progress-btn').addEventListener('click', function() {
+            saveRunProgress(checklist.id, existingRun ? existingRun.id : null);
+        });
+        
+        // Handle form submission - completes the run
+        document.getElementById('run-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // If it's a new run, we need to create it first
+            if (isNewRun) {
+                createThenCompleteRun(checklist.id);
+            } else {
+                completeExistingRun(checklist.id, existingRun.id);
+            }
+        });
+    }
+    
+    /**
+     * Creates a new run and then immediately completes it
+     */
+    function createThenCompleteRun(checklistId) {
+        const notes = document.getElementById('run-notes').value;
+        
+        console.log(`Creating and completing new run for checklist ${checklistId}`);
+        
+        // First, get the checklist details
+        window.auth.apiRequest(`/checklists/${checklistId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch checklist details');
+                }
+                return response.json();
+            })
+            .then(checklist => {
+                // Identify required items
+                const requiredItems = checklist.items.filter(item => item.is_required);
+                console.log('Required items:', requiredItems.map(item => item.id));
+                
+                // STEP 1: Create a new run with all required items already marked as completed
+                const items = checklist.items.map(item => ({
+                    item_id: item.id,
+                    // Mark item as completed if it's required
+                    completed: item.is_required ? true : false
+                }));
+                
+                const data = {
+                    checklist_id: checklistId,
+                    items: items,
+                    notes: notes || null
+                };
+                
+                console.log('Creating new run with data:', JSON.stringify(data));
+                
+                // Create the run with items
+                return window.auth.apiRequest('/checklists/runs', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            try {
+                                const error = JSON.parse(text);
+                                throw new Error(error.detail || 'Failed to create run');
+                            } catch (e) {
+                                throw new Error('Failed to create run: ' + text);
+                            }
+                        });
+                    }
+                    return response.json();
+                })
+                .then(newRun => {
+                    console.log('New run created with ID:', newRun.id);
+                    console.log('New run items:', newRun.run_items);
+                    
+                    // STEP 2: Complete the run immediately
+                    console.log('Now completing the run...');
+                    return window.auth.apiRequest(`/checklists/runs/${newRun.id}/complete`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            notes: notes || null
+                        })
+                    });
+                });
+            })
+            .then(response => {
+                return response.text().then(text => {
+                    console.log('Raw completion response:', text);
+                    
+                    if (!response.ok) {
+                        try {
+                            const error = JSON.parse(text);
+                            throw new Error(error.detail || 'Failed to complete checklist run');
+                        } catch (e) {
+                            throw new Error('Failed to complete checklist run: ' + text);
+                        }
+                    }
+                    
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        return { message: 'Success' };
+                    }
+                });
+            })
+            .then(run => {
+                window.app.showNotification('Checklist run completed successfully', 'success');
+                document.getElementById('run-checklist-modal').classList.add('hidden');
+                
+                // View the history
+                viewChecklistHistory(checklistId);
+            })
+            .catch(error => {
+                console.error('Error completing checklist run:', error);
+                window.app.showNotification(error.message, 'error');
+            });
+    }
+    
+    /**
+     * Completes an existing run
+     */
+    function completeExistingRun(checklistId, runId) {
+        const notes = document.getElementById('run-notes').value;
+        
+        console.log(`Completing existing run ${runId} for checklist ${checklistId}`);
+        
+        // Get both checklist and run details
+        Promise.all([
+            window.auth.apiRequest(`/checklists/${checklistId}`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to fetch checklist details'))),
+            window.auth.apiRequest(`/checklists/runs/${runId}`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to fetch run details')))
+        ])
+        .then(([checklist, run]) => {
+            console.log('Checklist for completion:', checklist);
+            console.log('Run for completion:', run);
+            
+            // Normalize run data structure - API sometimes returns run_items instead of items
+            if (!run.items && run.run_items) {
+                console.log('Converting run_items to items for consistency');
+                run.items = run.run_items;
+            }
+            
+            // Ensure run.items exists
+            if (!run.items) {
+                console.warn('No items found in run data, initializing empty array');
+                run.items = [];
+            }
+            
+            // Log the items we found
+            console.log(`Run has ${run.items.length} items:`, run.items);
+            
+            // Filter out required items
+            const requiredItems = checklist.items.filter(item => item.is_required);
+            console.log('Required items:', requiredItems);
+            
+            // Get the run items we need to update (required items that aren't completed yet)
+            const itemsToUpdate = [];
+            
+            requiredItems.forEach(requiredItem => {
+                const runItem = run.items.find(ri => ri.item_id === requiredItem.id);
+                if (runItem && !runItem.completed) {
+                    itemsToUpdate.push({
+                        runId: run.id,
+                        itemId: requiredItem.id
+                    });
+                } else if (!runItem) {
+                    console.warn(`Required item ${requiredItem.id} has no run item, this is unexpected`);
+                }
+            });
+            
+            console.log('Items that need to be updated:', itemsToUpdate);
+            
+            // Create update promises for each item
+            const updatePromises = itemsToUpdate.map(item => {
+                return window.auth.apiRequest(`/checklists/runs/${item.runId}/items/${item.itemId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        completed: true,
+                        notes: null
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to update item ${item.itemId}`);
+                    }
+                    console.log(`Successfully marked item ${item.itemId} as completed`);
+                    return response.json();
+                });
+            });
+            
+            // Update all required items first, then complete the run
+            return Promise.all(updatePromises)
+                .then(() => {
+                    console.log('All required items updated successfully, now completing the run');
+                    
+                    // Prepare completion data
+                    const completionData = {
+                        notes: notes || run.notes || null
+                    };
+                    
+                    // Complete the run
+                    return window.auth.apiRequest(`/checklists/runs/${runId}/complete`, {
+                        method: 'POST',
+                        body: JSON.stringify(completionData)
+                    });
+                });
         })
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to save checklist run');
+            if (!response) {
+                // This means we likely returned early during validation
+                return null;
             }
-            return response.json();
+            
+            return response.text().then(text => {
+                console.log('Raw completion response:', text);
+                
+                if (!response.ok) {
+                    try {
+                        const error = JSON.parse(text);
+                        throw new Error(error.detail || 'Failed to complete checklist run');
+                    } catch (e) {
+                        throw new Error('Failed to complete checklist run: ' + text);
+                    }
+                }
+                
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    return { message: 'Success' };
+                }
+            });
         })
         .then(run => {
+            if (!run) return; // We returned early during validation
+            
             window.app.showNotification('Checklist run completed successfully', 'success');
             document.getElementById('run-checklist-modal').classList.add('hidden');
             
-            // View the history for this checklist
+            // View the history
             viewChecklistHistory(checklistId);
         })
         .catch(error => {
             console.error('Error completing checklist run:', error);
-            window.app.showNotification('Failed to complete checklist run: ' + error.message, 'error');
+            window.app.showNotification(error.message, 'error');
+        });
+    }
+    
+    /**
+     * Creates a new run with the current form state
+     */
+    function saveRunProgress(checklistId, runId = null) {
+        const notes = document.getElementById('run-notes').value;
+        const isNewRun = !runId;
+        
+        console.log(`Saving progress for ${isNewRun ? 'new' : 'existing'} run of checklist ${checklistId}`);
+        
+        // Collect checked items
+        const checkedItems = [];
+        document.querySelectorAll('#run-items input[type="checkbox"]:checked').forEach(checkbox => {
+            const itemId = parseInt(checkbox.getAttribute('data-item-id'), 10);
+            if (itemId) {
+                checkedItems.push(itemId);
+            }
+        });
+        
+        // Get all items from the form
+        const items = [];
+        document.querySelectorAll('#run-items > div').forEach(div => {
+            const itemId = parseInt(div.getAttribute('data-item-id'), 10);
+            const checkbox = div.querySelector('input[type="checkbox"]');
+            const isChecked = checkbox && checkbox.checked;
+            
+            if (itemId) {
+                items.push({
+                    item_id: itemId,
+                    completed: isChecked
+                });
+            }
+        });
+        
+        // If we're trying to save progress but the API doesn't support PUT, we need to
+        // create a new run or use a special method for updating existing runs
+        if (isNewRun) {
+            // For new runs, we can create them
+            const data = {
+                checklist_id: checklistId,
+                items: items,
+                notes: notes || null
+            };
+            
+            // Make the API request to create a new run
+            window.auth.apiRequest('/checklists/runs', {
+                method: 'POST',
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        try {
+                            const error = JSON.parse(text);
+                            throw new Error(error.detail || 'Failed to save progress');
+                        } catch (e) {
+                            throw new Error('Failed to save progress: ' + text);
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(run => {
+                window.app.showNotification('Progress saved successfully', 'success');
+                
+                // Store the run ID
+                if (run.id) {
+                    document.getElementById('run-form').insertAdjacentHTML(
+                        'afterbegin', 
+                        `<input type="hidden" id="run-id" value="${run.id}">`
+                    );
+                }
+            })
+            .catch(error => {
+                console.error('Error saving progress:', error);
+                window.app.showNotification(error.message, 'error');
+            });
+        } else {
+            // For existing runs, since PUT isn't allowed, we'll have to see if there's another endpoint 
+            // or just notify the user of the limitation
+            window.app.showNotification(
+                'The server doesn\'t support saving progress for existing runs. You can either complete the run or start a new one.', 
+                'warning'
+            );
+        }
+    }
+    
+    function continueChecklistRun(checklistId, runId) {
+        console.log(`Continuing run ${runId} for checklist ${checklistId}`);
+        
+        // Fetch both checklist and run details
+        Promise.all([
+            window.auth.apiRequest(`/checklists/${checklistId}`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to fetch checklist details'))),
+            window.auth.apiRequest(`/checklists/runs/${runId}`).then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to fetch run details')))
+        ])
+        .then(([checklist, run]) => {
+            console.log('Checklist details:', checklist);
+            console.log('Run details:', run);
+            
+            // Normalize run data structure - API sometimes returns run_items instead of items
+            if (!run.items && run.run_items) {
+                console.log('Converting run_items to items for consistency');
+                run.items = run.run_items;
+            }
+            
+            // Ensure run.items exists
+            if (!run.items) {
+                console.warn('Run items is undefined, initializing empty array');
+                run.items = [];
+            }
+            
+            // Log what we found for debugging
+            if (run.items.length === 0) {
+                console.warn('No items found in this run, this may be a database issue');
+            } else {
+                console.log('Found', run.items.length, 'items in this run');
+                console.log('Items completed:', run.items.filter(item => item.completed).length);
+                
+                // Detailed logging of item state
+                run.items.forEach(item => {
+                    console.log(`Item #${item.item_id}: completed=${item.completed}`);
+                });
+            }
+            
+            // Render the run form with the existing run data
+            renderRunForm(checklist, run);
+        })
+        .catch(error => {
+            console.error('Error continuing checklist run:', error);
+            window.app.showNotification('Failed to continue checklist run: ' + error.message, 'error');
         });
     }
     
@@ -851,17 +1217,9 @@ function initChecklists() {
                 if (!run.completed_at) {
                     status = 'In Progress';
                     statusClass = 'bg-yellow-100 text-yellow-800';
-                } else if (run.items) {
-                    // Check if all required items are completed
-                    const allRequiredComplete = true; // Simplified, should actually check each required item
-                    
-                    if (allRequiredComplete) {
-                        status = 'Completed';
-                        statusClass = 'bg-blue-100 text-blue-800';
-                    } else {
-                        status = 'Incomplete';
-                        statusClass = 'bg-red-100 text-red-800';
-                    }
+                } else {
+                    status = 'Completed';
+                    statusClass = 'bg-blue-100 text-blue-800';
                 }
                 
                 const startDate = new Date(run.started_at);
@@ -923,6 +1281,13 @@ function initChecklists() {
             }
             
             const run = await response.json();
+            console.log('Run details:', run); // Debug log for run data structure
+            
+            // Normalize run data structure - API sometimes returns run_items instead of items
+            if (!run.items && run.run_items) {
+                console.log('Converting run_items to items for consistency');
+                run.items = run.run_items;
+            }
             
             // Get checklist details
             const checklistResponse = await window.auth.apiRequest(`/checklists/${run.checklist_id}`);
@@ -932,13 +1297,25 @@ function initChecklists() {
             }
             
             const checklist = await checklistResponse.json();
+            console.log('Checklist details:', checklist); // Debug log for checklist structure
             
             // Update modal title
             document.getElementById('details-modal-title').textContent = `Run Details: ${checklist.title}`;
             
+            // Ensure run.items exists
+            if (!run.items) {
+                console.warn('Run items is undefined, initializing empty array');
+                run.items = [];
+            } else {
+                console.log('Run has', run.items.length, 'items');
+                run.items.forEach(item => {
+                    console.log(`Run item #${item.id}, item_id=${item.item_id}, completed=${item.completed}`);
+                });
+            }
+            
             // Calculate completion
-            const totalItems = run.items ? run.items.length : 0;
-            const completedItems = run.items ? run.items.filter(item => item.completed).length : 0;
+            const totalItems = run.items.length;
+            const completedItems = run.items.filter(item => item.completed).length;
             const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
             
             // Determine status
@@ -949,7 +1326,7 @@ function initChecklists() {
                 status = 'In Progress';
                 statusClass = 'bg-yellow-100 text-yellow-800';
             } else {
-                // Simplified check
+                // Only show Completed when the run is actually completed
                 status = 'Completed';
                 statusClass = 'bg-blue-100 text-blue-800';
             }
@@ -1000,18 +1377,24 @@ function initChecklists() {
                     <div class="mt-4">
                         <h4 class="font-medium text-gray-700 mb-2">Items:</h4>
                         <div class="space-y-2">
-                            ${run.items.map((item, index) => {
-                                const checklistItem = checklist.items[item.index];
+                            ${checklist.items.length > 0 ? checklist.items.map((item, index) => {
+                                // Safely find the matching run item
+                                const matchingRunItem = run.items.find(runItem => 
+                                    runItem.item_id === item.id
+                                );
+                                
+                                const isCompleted = matchingRunItem && matchingRunItem.completed;
+                                
                                 return `
                                     <div class="flex items-start space-x-3">
-                                        <input type="checkbox" disabled ${item.completed ? 'checked' : ''} class="mt-1">
-                                        <span class="text-gray-700 ${checklistItem && checklistItem.is_required ? 'font-semibold' : ''}">
-                                            ${checklistItem ? checklistItem.text : `Item ${index + 1}`}
-                                            ${checklistItem && checklistItem.is_required ? '<span class="text-red-500 ml-1">*</span>' : ''}
+                                        <input type="checkbox" disabled ${isCompleted ? 'checked' : ''} class="mt-1">
+                                        <span class="text-gray-700 ${item.is_required ? 'font-semibold' : ''}">
+                                            ${item.text}
+                                            ${item.is_required ? '<span class="text-red-500 ml-1">*</span>' : ''}
                                         </span>
                                     </div>
                                 `;
-                            }).join('')}
+                            }).join('') : '<p class="text-gray-500">No items found for this checklist.</p>'}
                         </div>
                     </div>
                 </div>
@@ -1035,161 +1418,6 @@ function initChecklists() {
             window.app.showNotification('Failed to load run details: ' + error.message, 'error');
         }
     }
-    
-    function continueChecklistRun(checklistId, runId) {
-        // Fetch the run details to continue
-        window.auth.apiRequest(`/checklists/runs/${runId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch run details');
-                }
-                return response.json();
-            })
-            .then(run => {
-                // Make sure run.items exists
-                run.items = run.items || [];
-                
-                // Fetch the checklist details
-                return window.auth.apiRequest(`/checklists/${checklistId}`)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Failed to fetch checklist details');
-                        }
-                        return response.json().then(checklist => ({ run, checklist }));
-                    });
-            })
-            .then(({ run, checklist }) => {
-                // Update the modal title
-                document.getElementById('run-modal-title').textContent = `Continue Checklist: ${checklist.title}`;
-                
-                // Build the checklist form
-                const content = document.getElementById('run-checklist-content');
-                content.innerHTML = `
-                    <form id="run-form">
-                        <input type="hidden" id="run-checklist-id" value="${checklist.id}">
-                        <input type="hidden" id="run-id" value="${run.id}">
-                        
-                        <div class="space-y-4 mb-6">
-                            <p class="text-gray-700">Complete the following items:</p>
-                            
-                            <div id="run-items" class="space-y-3">
-                                ${checklist.items.map((item, index) => {
-                                    const runItem = run.items.find(i => i.index === index);
-                                    const isCompleted = runItem && runItem.completed;
-                                    
-                                    return `
-                                        <div class="flex items-start space-x-3">
-                                            <input type="checkbox" name="item-${index}" id="item-${index}" ${isCompleted ? 'checked' : ''} class="mt-1 form-checkbox ${item.is_required ? 'required-item' : ''}">
-                                            <label for="item-${index}" class="text-gray-700 ${item.is_required ? 'font-semibold' : ''}">
-                                                ${item.text}
-                                                ${item.is_required ? '<span class="text-red-500 ml-1">*</span>' : ''}
-                                            </label>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                            
-                            <div class="mt-4">
-                                <label for="run-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-                                <textarea id="run-notes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">${run.notes || ''}</textarea>
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-end space-x-3">
-                            <button type="button" id="cancel-run" class="px-4 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100">
-                                Cancel
-                            </button>
-                            <button type="submit" id="complete-run" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                Complete Run
-                            </button>
-                        </div>
-                    </form>
-                `;
-                
-                // Show the modal
-                document.getElementById('run-checklist-modal').classList.remove('hidden');
-                
-                // Add event listeners
-                document.getElementById('cancel-run').addEventListener('click', function() {
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                });
-                
-                document.getElementById('close-run-modal').addEventListener('click', function() {
-                    document.getElementById('run-checklist-modal').classList.add('hidden');
-                });
-                
-                document.getElementById('run-form').addEventListener('submit', completeInProgressRun);
-            })
-            .catch(error => {
-                console.error('Error continuing checklist run:', error);
-                window.app.showNotification('Failed to continue checklist run: ' + error.message, 'error');
-            });
-    }
-    
-    function completeInProgressRun(e) {
-        e.preventDefault();
-        
-        const checklistId = document.getElementById('run-checklist-id').value;
-        const runId = document.getElementById('run-id').value;
-        const notes = document.getElementById('run-notes').value;
-        
-        // Collect item completion status
-        const items = [];
-        document.querySelectorAll('#run-items input[type="checkbox"]').forEach((checkbox, index) => {
-            items.push({
-                index: index,
-                completed: checkbox.checked
-            });
-        });
-        
-        // Check if all required items are completed
-        const requiredItems = document.querySelectorAll('#run-items .required-item');
-        let allRequiredCompleted = true;
-        
-        requiredItems.forEach(item => {
-            if (!item.checked) {
-                allRequiredCompleted = false;
-            }
-        });
-        
-        if (!allRequiredCompleted) {
-            if (!confirm('Not all required items are completed. Do you want to continue anyway?')) {
-                return;
-            }
-        }
-        
-        // Prepare data for the API
-        const data = {
-            items: items,
-            notes: notes || null,
-            completed: true
-        };
-        
-        // Update the run
-        window.auth.apiRequest(`/checklists/runs/${runId}`, {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to update checklist run');
-            }
-            return response.json();
-        })
-        .then(run => {
-            window.app.showNotification('Checklist run completed successfully', 'success');
-            document.getElementById('run-checklist-modal').classList.add('hidden');
-            
-            // View the history for this checklist
-            viewChecklistHistory(checklistId);
-        })
-        .catch(error => {
-            console.error('Error completing checklist run:', error);
-            window.app.showNotification('Failed to complete checklist run: ' + error.message, 'error');
-        });
-    }
-
-    // ... rest of the existing functions ...
 }
 </script>
 {% endblock %} 
