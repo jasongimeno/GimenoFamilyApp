@@ -17,57 +17,8 @@
     <link href="{% if has_filter('static_url') %}{{ '/css/styles.css' | static_url }}{% else %}{{ url_for('static', path='/css/styles.css') }}{% endif %}" rel="stylesheet">
     
     {% block head %}{% endblock %}
-
-    <style>
-        /* Force the navbar gradient to be visible */
-        .navbar-gradient {
-            background: linear-gradient(to right, #3b82f6, #60a5fa) !important;
-        }
-        
-        /* Dark mode adjustments */
-        .dark .navbar-gradient {
-            background: linear-gradient(to right, #1e3a8a, #3b82f6) !important;
-        }
-        
-        /* Global dark mode styles */
-        .dark {
-            background-color: #0f172a !important;
-            color: #f1f5f9 !important;
-        }
-        
-        .dark .bg-white, 
-        .dark .bg-gray-50,
-        .dark .bg-gray-100 {
-            background-color: #1e293b !important;
-        }
-        
-        .dark .text-gray-500,
-        .dark .text-gray-600,
-        .dark .text-gray-700,
-        .dark .text-gray-800 {
-            color: #e2e8f0 !important;
-        }
-        
-        .dark .border,
-        .dark .border-gray-200 {
-            border-color: #475569 !important;
-        }
-        
-        /* Dark content */
-        .dark-content {
-            background-color: #1e293b !important;
-            color: #f1f5f9 !important;
-            border-color: #475569 !important;
-        }
-        
-        /* Fix for white buttons with white text */
-        .bg-white.text-white {
-            color: #3b82f6 !important; /* Blue text */
-            border: 1px solid #3b82f6; /* Blue border */
-        }
-    </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col dark:bg-gray-900">
+<body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- Navigation -->
     <nav class="navbar-gradient text-white shadow-lg">
         <div class="container mx-auto px-4 py-3">
@@ -81,13 +32,6 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <!-- Theme toggle button -->
-                    <button id="theme-toggle" class="theme-toggle p-2 rounded-full focus:outline-none" aria-label="Toggle Dark Mode">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
-                    </button>
-                    
                     <!-- Mobile menu button -->
                     <button id="mobile-menu-button" class="md:hidden focus:outline-none">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -104,18 +48,18 @@
                             </svg>
                         </button>
                         <!-- User dropdown menu -->
-                        <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 hidden">
+                        <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
                             <div id="logged-in-menu" class="hidden">
-                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
-                                <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
-                                <hr class="border-gray-200 dark:border-gray-700 my-1">
-                                <button id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                                <hr class="border-gray-200 my-1">
+                                <button id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     Logout
                                 </button>
                             </div>
                             <div id="logged-out-menu">
-                                <a href="/login" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Login</a>
-                                <a href="/register" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Sign Up</a>
+                                <a href="/login" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Login</a>
+                                <a href="/register" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sign Up</a>
                             </div>
                         </div>
                     </div>
